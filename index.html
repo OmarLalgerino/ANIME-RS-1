@@ -2,80 +2,77 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anime Streamer Pro</title>
+    <title>مشغل أنمي تورنت - OmarL</title>
     <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; background: #121212; color: white; padding: 20px; }
-        .anime-card { background: #1e1e1e; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #333; }
-        .quality-buttons { margin-top: 10px; }
-        button { background: #e50914; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; margin-left: 5px; }
-        button:disabled { background: #555; }
-        .status { color: #aaa; font-size: 0.9.em; margin-top: 10px; }
+        body { font-family: sans-serif; background-color: #1a1a1a; color: white; text-align: center; padding: 20px; }
+        .anime-card { background: #333; margin: 10px; padding: 15px; border-radius: 8px; display: inline-block; width: 250px; vertical-align: top; }
+        .anime-card img { width: 100%; border-radius: 5px; height: 300px; object-fit: cover; }
+        .btn-group button { margin: 5px; padding: 8px 15px; cursor: pointer; border: none; border-radius: 4px; background: #e91e63; color: white; }
+        #player-container { margin-top: 20px; position: sticky; top: 10px; z-index: 100; }
+        video { width: 90%; max-width: 800px; border: 2px solid #e91e63; border-radius: 10px; background: black; }
+        #status { color: #ffeb3b; margin: 10px; }
     </style>
 </head>
 <body>
 
-    <h1>قائمة الأنمي</h1>
-
-    <div id="anime-list">
-        </div>
+    <h1>قائمة الأنمي (بث تورنت)</h1>
+    <div id="player-container"></div>
+    <div id="status"></div>
+    <div id="anime-list">جاري تحميل البيانات...</div>
 
     <script>
         const client = new WebTorrent();
+        const jsonUrl = "https://raw.githubusercontent.com/OmarLalgerino/anime-RS-/refs/heads/main/data.json?token=GHSAT0AAAAAADTOOC76T5A7HMIPLO6X4NIU2L5DRVQ";
 
-        // 1 & 2: اسم الأنمي والروابط (الجودات المتعددة)
-        const animeData = [
-            {
-                name: "Solo Leveling - Episode 01",
-                qualities: [
-                    { label: "1080p", url: "https://nyaa.si/download/1763321.torrent" },
-                    { label: "720p", url: "https://nyaa.si/download/1763322.torrent" } // مثال لرابط آخر
-                ]
-            }
-        ];
+        // 1. جلب البيانات من رابط الـ Raw الخاص بك
+        fetch(jsonUrl)
+            .then(response => response.json())
+            .then(data => {
+                const listContainer = document.getElementById('anime-list');
+                listContainer.innerHTML = ''; // مسح رسالة التحميل
 
-        const listContainer = document.getElementById('anime-list');
+                data.forEach(anime => {
+                    const card = document.createElement('div');
+                    card.className = 'anime-card';
+                    
+                    // استخدام البوستر من الملف أو صورة افتراضية
+                    const poster = anime.info.poster.includes('placeholder') ? 'https://via.placeholder.com/250x350?text=No+Image' : anime.info.poster;
 
-        animeData.forEach(anime => {
-            const card = document.createElement('div');
-            card.className = 'anime-card';
-            
-            let qualityButtons = '';
-            anime.qualities.forEach(q => {
-                qualityButtons += `<button onclick="startStream('${q.url}', '${anime.name} - ${q.label}')">${q.label}</button>`;
+                    card.innerHTML = `
+                        <img src="${poster}" alt="${anime.title}">
+                        <h3>${anime.title}</h3>
+                        <div class="btn-group">
+                            ${anime.links["1080p"] ? `<button onclick="playVideo('${anime.links["1080p"]}')">1080p</button>` : ''}
+                            ${anime.links["480p"] ? `<button onclick="playVideo('${anime.links["480p"]}')">480p</button>` : ''}
+                        </div>
+                    `;
+                    listContainer.appendChild(card);
+                });
+            })
+            .catch(err => {
+                document.getElementById('anime-list').innerHTML = "خطأ في جلب البيانات. تأكد من صلاحية الـ Token.";
+                console.error(err);
             });
 
-            card.innerHTML = `
-                <h3>${anime.name}</h3>
-                <div class="quality-buttons">${qualityButtons}</div>
-                <div id="status-${anime.name}" class="status">جاهز للمشاهدة...</div>
-            `;
-            listContainer.appendChild(card);
-        });
+        // 2. دالة تشغيل التورنت
+        function playVideo(torrentId) {
+            const status = document.getElementById('status');
+            const playerContainer = document.getElementById('player-container');
+            
+            status.innerHTML = "جاري الاتصال بالموزعين (Seeders)... يرجى الانتظار";
+            playerContainer.innerHTML = ''; // تنظيف المشغل القديم
 
-        // 3: تحويل رابط التحميل إلى رابط مشاهدة (Direct Link) لإرساله للمشغل
-        function startStream(torrentUrl, title) {
-            const statusDiv = document.getElementById(`status-${title.split(' - ')[0]}`);
-            statusDiv.innerText = "جاري الاتصال بالموزعين (Buffering)...";
-
-            client.add(torrentUrl, function (torrent) {
-                // البحث عن ملف الفيديو
-                const file = torrent.files.find(f => f.name.endsWith('.mkv') || f.name.endsWith('.mp4'));
-
-                // ميزة التشغيل المتسلسل لسرعة الفتح
-                file.deselect();
-                file.select();
-
-                file.getBlobURL(function (err, url) {
-                    if (err) return alert("خطأ في جلب الرابط");
-                    
-                    statusDiv.innerText = "تم التحويل! يفتح الآن في Just Player...";
-                    
-                    // إرسال الرابط إلى Just Player عبر الـ Intent
-                    const intentUrl = `intent:${url}#Intent;package=com.brouken.player;type=video/*;set.title=${encodeURIComponent(title)};end`;
-                    window.location.href = intentUrl;
-                });
+            client.add(torrentId, function (torrent) {
+                // البحث عن أول ملف فيديو داخل التورنت
+                const file = torrent.files.find(f => f.name.endsWith('.mp4') || f.name.endsWith('.mkv'));
+                
+                if (file) {
+                    status.innerHTML = `جاري الآن تشغيل: ${file.name}`;
+                    file.appendTo('#player-container', { autoplay: true, controls: true });
+                } else {
+                    status.innerHTML = "لم يتم العثور على ملف فيديو داخل التورنت.";
+                }
             });
         }
     </script>
