@@ -1,26 +1,121 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تطبيقي للأفلام</title>
+    <title>تطبيق الأنمي الخاص بي</title>
     <style>
-        body, html {
+        /* تصميم الواجهة */
+        body {
+            background-color: #0f0f0f;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: 0;
-            padding: 0;
-            height: 100%;
-            overflow: hidden; /* يمنع ظهور شريط التمرير المزدوج */
+            padding: 20px;
         }
-        iframe {
+        h2 { text-align: center; color: #00d2ff; }
+        
+        /* مشغل الفيديو */
+        .video-container {
             width: 100%;
-            height: 100vh; /* يجعل الموقع يملأ شاشة الهاتف بالكامل */
-            border: none;
+            max-width: 800px;
+            margin: 0 auto 20px auto;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            aspect-ratio: 16 / 9;
         }
+        iframe { width: 100%; height: 100%; border: none; }
+
+        /* قائمة الحلقات */
+        .episodes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 10px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .episode-card {
+            background: #1e1e1e;
+            padding: 15px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 1px solid #333;
+            transition: 0.3s;
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .episode-card:hover {
+            background: #00d2ff;
+            color: #000;
+            transform: translateY(-3px);
+        }
+        .loading { text-align: center; color: #888; }
     </style>
 </head>
 <body>
 
-    <iframe src="https://anime3rb.com"></iframe>
+    <h2>🎬 قائمة الحلقات المتوفرة</h2>
 
+    <div class="video-container">
+        <iframe id="player" src="" allowfullscreen></iframe>
+    </div>
+
+    <div id="loading" class="loading">جاري جلب البيانات من السيرفر...</div>
+    <div id="episodes-list" class="episodes-grid"></div>
+
+    <script>
+        // مفتاح الـ API الخاص بك الذي استخرجناه
+        const myApiKey = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
+
+        async function loadMyAnimes() {
+            try {
+                // استدعاء الـ API لجلب قائمة الملفات
+                const response = await fetch(`https://vidoza.net/api/file/list?key=${myApiKey}`);
+                const data = await response.json();
+
+                const listContainer = document.getElementById('episodes-list');
+                const loadingText = document.getElementById('loading');
+
+                if (data.status === 200) {
+                    loadingText.style.display = 'none';
+                    const files = data.result.files;
+
+                    if (files.length === 0) {
+                        loadingText.innerText = "لا توجد فيديوهات في حسابك حالياً. ارفع فيديو لتظهر هنا!";
+                        loadingText.style.display = 'block';
+                        return;
+                    }
+
+                    files.forEach(file => {
+                        // إنشاء بطاقة لكل فيديو
+                        const card = document.createElement('div');
+                        card.className = 'episode-card';
+                        card.innerText = file.title; // يظهر اسم الفيديو المشفر
+                        
+                        // عند الضغط: تشغيل الفيديو في الـ Iframe
+                        card.onclick = () => {
+                            const embedUrl = `https://vidoza.net/embed-${file.file_code}.html`;
+                            document.getElementById('player').src = embedUrl;
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                        };
+
+                        listContainer.appendChild(card);
+                    });
+                } else {
+                    loadingText.innerText = "خطأ في المفتاح أو السيرفر";
+                }
+            } catch (error) {
+                document.getElementById('loading').innerText = "فشل الاتصال بالإنترنت";
+            }
+        }
+
+        // تشغيل الوظيفة فور فتح الصفحة
+        loadMyAnimes();
+    </script>
 </body>
 </html>
