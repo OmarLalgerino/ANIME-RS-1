@@ -3,55 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مكتبة الأنمي التلقائية</title>
+    <title>مشغل الأنمي التلقائي</title>
     <style>
-        body { background: #000; color: white; margin: 0; font-family: sans-serif; text-align: center; }
-        .player-unit { position: sticky; top: 0; width: 100%; aspect-ratio: 16/9; background: #111; border-bottom: 2px solid #00bcd4; z-index: 100; }
+        body { background: #000; color: #fff; margin: 0; font-family: sans-serif; text-align: center; }
+        .player-header { padding: 10px; background: #111; border-bottom: 2px solid #00bcd4; }
+        .video-box { position: sticky; top: 0; width: 100%; aspect-ratio: 16/9; background: #000; z-index: 999; }
         iframe { width: 100%; height: 100%; border: none; }
         .anime-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
-        .anime-card { background: #1a1a1a; padding: 15px; border-radius: 8px; border: 1px solid #333; cursor: pointer; font-size: 14px; }
-        .anime-card:active { background: #00bcd4; color: #000; }
+        .anime-item { 
+            background: #1a1a1a; border: 1px solid #333; border-radius: 8px; 
+            padding: 15px; font-size: 14px; cursor: pointer; 
+        }
+        .anime-item:active { background: #00bcd4; color: #000; }
+        #loading { padding: 30px; color: #00bcd4; }
     </style>
 </head>
 <body>
 
-    <div class="player-unit">
-        <iframe id="video-frame" src="" allowfullscreen></iframe>
+    <div class="video-box">
+        <iframe id="screen" src="" allowfullscreen></iframe>
     </div>
 
-    <div id="loading" style="padding: 20px;">جاري جلب أحدث الحلقات...</div>
-    <div id="anime-list" class="anime-grid"></div>
+    <div id="loading">جاري جلب الفيديوهات...</div>
+    <div id="list" class="anime-grid"></div>
 
     <script>
-        // استخدام التوكن الخاص بك مباشرة كما تسمح وثائق Vidoza
-        const API_TOKEN = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
+        const TOKEN = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
 
-        async function fetchAnime() {
+        async function getVideos() {
             try {
-                // الاتصال المباشر أصبح ممكناً الآن لأنك جعلت النطاق Internal
-                const response = await fetch(`https://api.vidoza.net/v1/files?api_token=${API_TOKEN}`);
-                const result = await response.json();
+                // نستخدم الرابط المباشر مع التوكن كما في وثائق API Vidoza
+                const response = await fetch(`https://api.vidoza.net/v1/files?api_token=${TOKEN}`);
+                const json = await response.json();
 
-                const list = document.getElementById('anime-list');
                 document.getElementById('loading').style.display = 'none';
+                const listDiv = document.getElementById('list');
 
-                if (result.data && result.data.length > 0) {
-                    result.data.forEach(anime => {
-                        const card = document.createElement('div');
-                        card.className = 'anime-card';
-                        card.innerText = anime.title;
-                        card.onclick = () => {
-                            document.getElementById('video-frame').src = `https://vidoza.net/embed-${anime.id}.html`;
+                if (json.data && json.data.length > 0) {
+                    json.data.forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = 'anime-item';
+                        div.innerText = file.title || file.name;
+                        div.onclick = () => {
+                            document.getElementById('screen').src = `https://vidoza.net/embed-${file.id}.html`;
                             window.scrollTo({top: 0, behavior: 'smooth'});
                         };
-                        list.appendChild(card);
+                        listDiv.appendChild(div);
                     });
                 }
             } catch (err) {
-                document.getElementById('loading').innerText = "خطأ: تأكد من تحديث نسخة التطبيق بعد حفظ إعدادات Median.";
+                document.getElementById('loading').innerText = "حدث خطأ. تأكد من إعدادات النطاق الداخلي.";
             }
         }
-        fetchAnime();
+        getVideos();
     </script>
 </body>
 </html>
