@@ -3,59 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل الأنمي الخارجي</title>
+    <title>Anime Auto Stream</title>
     <style>
-        body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
-        .btn-external { 
-            background: #4CAF50; color: white; padding: 20px; margin: 10px; 
-            border: none; border-radius: 12px; width: 100%; font-size: 18px; font-weight: bold;
-        }
-        .info { color: #aaa; margin-bottom: 20px; }
+        body { background: #000; color: white; margin: 0; font-family: sans-serif; }
+        .player-area { position: sticky; top: 0; width: 100%; aspect-ratio: 16/9; background: #111; border-bottom: 2px solid #ff9800; z-index: 100; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .list-area { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .anime-card { background: #1a1a1a; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #333; font-size: 14px; }
+        .anime-card:active { background: #ff9800; color: #000; }
+        #msg { padding: 20px; text-align: center; color: #ff9800; }
     </style>
 </head>
 <body>
 
-    <h2>🚀 تشغيل عبر مشغل خارجي</h2>
-    <p class="info">سيتم فتح الفيديو مباشرة في MX Player أو VLC</p>
+    <div class="player-area">
+        <iframe id="main-video" src="" allowfullscreen></iframe>
+    </div>
 
-    <div id="list">جاري جلب الروابط...</div>
+    <div id="msg">جاري مزامنة آخر الحلقات من Vidoza...</div>
+    <div id="list" class="list-area"></div>
 
     <script>
-        const myToken = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
-
-        async function getDirectLinks() {
+        const API_TOKEN = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
+        
+        async function loadContent() {
             try {
-                // نطلب قائمة الملفات
-                const response = await fetch(`https://api.vidoza.net/v1/files/list?api_token=${myToken}`);
+                // هذا الرابط يحل مشكلة "عدم ظهور الفيديوهات" في التطبيقات
+                const apiURL = `https://api.vidoza.net/v1/files/list?api_token=${API_TOKEN}`;
+                const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiURL)}`;
+
+                const response = await fetch(proxy);
                 const data = await response.json();
+                const vidozaData = JSON.parse(data.contents);
 
                 const listDiv = document.getElementById('list');
-                
-                if (data.data && data.data.length > 0) {
-                    listDiv.innerHTML = '';
-                    
-                    data.data.forEach(file => {
-                        const btn = document.createElement('button');
-                        btn.className = 'btn-external';
-                        btn.innerText = "📺 فتح " + file.title;
-                        
-                        btn.onclick = () => {
-                            // هذا الرابط يخبر الأندرويد بفتح مشغل فيديو خارجي
-                            // نستخدم بروتوكول "intent" الخاص بالأندرويد
-                            const videoUrl = `https://vidoza.net/embed-${file.code}.html`; 
-                            // ملاحظة: للحصول على الرابط المباشر 100% تحتاج لطلب إضافي،
-                            // لكن معظم المشغلات تستطيع قراءة رابط التضمين إذا تم توجيهها بشكل صحيح.
-                            
-                            window.location.href = `intent:${videoUrl}#Intent;package=com.mxtech.videoplayer.ad;end`;
+                const msg = document.getElementById('msg');
+
+                if (vidozaData.data && vidozaData.data.length > 0) {
+                    msg.style.display = 'none';
+                    vidozaData.data.forEach(file => {
+                        const card = document.createElement('div');
+                        card.className = 'anime-card';
+                        card.innerText = file.title;
+                        card.onclick = () => {
+                            document.getElementById('main-video').src = `https://vidoza.net/embed-${file.code}.html`;
+                            window.scrollTo(0,0);
                         };
-                        listDiv.appendChild(btn);
+                        listDiv.appendChild(card);
                     });
+                } else {
+                    msg.innerText = "لا يوجد فيديوهات في حسابك حالياً";
                 }
-            } catch (e) {
-                listDiv.innerHTML = "خطأ في الاتصال";
+            } catch (error) {
+                msg.innerText = "فشل الاتصال! تأكد من أن الـ API Token صحيح في الإعدادات";
             }
         }
-        getDirectLinks();
+        loadContent();
     </script>
 </body>
 </html>
