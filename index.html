@@ -3,98 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS - Player</title>
     <style>
-        body { background-color: #0f0f0f; color: white; font-family: sans-serif; margin: 0; padding: 0; }
+        body { background-color: #0b0b0b; color: white; font-family: Arial, sans-serif; margin: 0; padding: 0; }
         
-        /* الهيدر */
-        .header { padding: 15px; background: #1a1a1a; border-bottom: 2px solid #e50914; display: flex; justify-content: space-between; align-items: center; }
-        
-        /* حاوية القائمة */
-        #main-view { padding: 15px; }
-        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
-        .anime-card { background: #1a1a1a; border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; }
-        .anime-card:active { transform: scale(0.95); }
-        .anime-card img { width: 100%; height: 200px; object-fit: cover; }
-        .info { padding: 8px; text-align: center; font-size: 13px; }
+        /* تصميم القائمة */
+        #main-view { padding: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+        .card { background: #161616; border-radius: 8px; overflow: hidden; border-bottom: 2px solid red; cursor: pointer; }
+        .card img { width: 100%; height: 190px; object-fit: cover; }
+        .title { padding: 5px; text-align: center; font-size: 14px; }
 
-        /* حاوية المشغل (مخفية افتراضياً) */
-        #player-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 100; }
-        .video-wrapper { width: 100%; aspect-ratio: 16 / 9; background: #000; }
-        iframe, video { width: 100%; height: 100%; border: none; }
-        .player-details { padding: 20px; }
-        .btn-back { background: #e50914; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 10px; }
+        /* تصميم المشغل */
+        #player-view { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: black; z-index: 999; }
+        .back-btn { background: red; color: white; border: none; padding: 10px; width: 100%; font-weight: bold; }
+        .video-box { width: 100%; height: calc(100% - 40px); position: relative; }
+        iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
 
     <div id="main-view">
-        <div class="header">
-            <span style="font-weight: bold; color: #e50914;">ANIME RS</span>
-            <input type="text" id="searchInput" placeholder="بحث..." style="background:#252525; border:none; color:white; padding:5px; border-radius:5px;">
-        </div>
-        <div class="anime-grid" id="animeGrid">
-            </div>
+        <h2 style="text-align: center; color: red;">ANIME RS</h2>
+        <div class="grid" id="animeGrid"></div>
     </div>
 
     <div id="player-view">
-        <button class="btn-back" onclick="closePlayer()">⬅ عودة للقائمة</button>
-        <div class="video-wrapper" id="videoContainer">
-            </div>
-        <div class="player-details">
-            <h2 id="currentTitle">اسم الأنمي</h2>
-            <p id="currentDesc" style="color: #bbb;">وصف الأنمي وسيرفرات المشاهدة...</p>
-        </div>
+        <button class="back-btn" onclick="closePlayer()">⬅ العودة للقائمة</button>
+        <div class="video-box" id="videoBox"></div>
     </div>
 
     <script>
-        const sheetUrl = 'https://docs.google.com/spreadsheets/d/1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY/export?format=csv';
-        let allAnime = [];
+        // رابط جدول البيانات (تأكد أن الرابط يعمل بصيغة CSV)
+        const sheetURL = 'https://docs.google.com/spreadsheets/d/1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY/export?format=csv';
 
-        // جلب البيانات من Google Sheets
-        async function loadData() {
-            const res = await fetch(sheetUrl);
-            const data = await res.text();
+        async function loadAnime() {
+            const response = await fetch(sheetURL);
+            const data = await response.text();
             const rows = data.split('\n').slice(1);
             
-            allAnime = rows.map(row => {
-                const col = row.split(',');
-                return { title: col[0], img: col[1], videoUrl: col[3], desc: col[4] || "لا يوجد وصف حالياً" };
-            });
-            display(allAnime);
-        }
-
-        function display(list) {
             const grid = document.getElementById('animeGrid');
-            grid.innerHTML = list.map((a, index) => `
-                <div class="anime-card" onclick="openPlayer(${index})">
-                    <img src="${a.img}">
-                    <div class="info"><b>${a.title}</b></div>
-                </div>
-            `).join('');
+            grid.innerHTML = '';
+
+            rows.forEach(row => {
+                const cols = row.split(',');
+                if(cols[0]) {
+                    const anime = {
+                        title: cols[0].trim(),
+                        img: cols[1].trim(),
+                        url: cols[3].trim() // هنا رابط vidoza
+                    };
+
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `<img src="${anime.img}"><div class="title">${anime.title}</div>`;
+                    card.onclick = () => openPlayer(anime.url);
+                    grid.appendChild(card);
+                }
+            });
         }
 
-        // دالة فتح المشغل
-        function openPlayer(index) {
-            const anime = allAnime[index];
+        function openPlayer(url) {
             document.getElementById('main-view').style.display = 'none';
             document.getElementById('player-view').style.display = 'block';
-            document.getElementById('currentTitle').innerText = anime.title;
-            document.getElementById('currentDesc').innerText = anime.desc;
             
-            // وضع رابط الفيديو (سواء كان MP4 أو رابط سيرفر خارجي)
-            const videoContainer = document.getElementById('videoContainer');
-            videoContainer.innerHTML = `<iframe src="${anime.videoUrl}" allowfullscreen></iframe>`;
+            // وضع رابط Vidoza داخل iframe
+            document.getElementById('videoBox').innerHTML = `
+                <iframe src="${url}" allowfullscreen scrolling="no"></iframe>
+            `;
         }
 
-        // دالة العودة
         function closePlayer() {
             document.getElementById('player-view').style.display = 'none';
             document.getElementById('main-view').style.display = 'block';
-            document.getElementById('videoContainer').innerHTML = ''; // إيقاف الفيديو عند الخروج
+            document.getElementById('videoBox').innerHTML = ''; // إيقاف الفيديو
         }
 
-        loadData();
+        loadAnime();
     </script>
 </body>
 </html>
