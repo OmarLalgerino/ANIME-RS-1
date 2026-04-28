@@ -3,62 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anime Auto Stream</title>
+    <title>تطبيق الأنمي - تحديث تلقائي</title>
     <style>
-        body { background: #000; color: white; margin: 0; font-family: sans-serif; }
-        .player-area { position: sticky; top: 0; width: 100%; aspect-ratio: 16/9; background: #111; border-bottom: 2px solid #ff9800; z-index: 100; }
+        body { background: #000; color: white; margin: 0; font-family: sans-serif; text-align: center; }
+        .video-container { position: sticky; top: 0; width: 100%; aspect-ratio: 16/9; background: #111; border-bottom: 2px solid #00bcd4; z-index: 100; }
         iframe { width: 100%; height: 100%; border: none; }
-        .list-area { padding: 15px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .anime-card { background: #1a1a1a; padding: 15px; border-radius: 8px; text-align: center; border: 1px solid #333; font-size: 14px; }
-        .anime-card:active { background: #ff9800; color: #000; }
-        #msg { padding: 20px; text-align: center; color: #ff9800; }
+        .list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
+        .card { background: #1a1a1a; padding: 15px; border-radius: 8px; font-size: 14px; border: 1px solid #333; cursor: pointer; }
+        .card:active { background: #00bcd4; color: #000; }
+        #status { padding: 20px; color: #00bcd4; }
     </style>
 </head>
 <body>
 
-    <div class="player-area">
-        <iframe id="main-video" src="" allowfullscreen></iframe>
+    <div class="video-container">
+        <iframe id="player" src="" allowfullscreen></iframe>
     </div>
 
-    <div id="msg">جاري مزامنة آخر الحلقات من Vidoza...</div>
-    <div id="list" class="list-area"></div>
+    <div id="status">جاري جلب الحلقات الجديدة...</div>
+    <div id="list" class="list"></div>
 
     <script>
-        const API_TOKEN = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
-        
-        async function loadContent() {
-            try {
-                // هذا الرابط يحل مشكلة "عدم ظهور الفيديوهات" في التطبيقات
-                const apiURL = `https://api.vidoza.net/v1/files/list?api_token=${API_TOKEN}`;
-                const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(apiURL)}`;
+        // مفتاحك الحقيقي من الصورة
+        const API_KEY = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
 
-                const response = await fetch(proxy);
-                const data = await response.json();
-                const vidozaData = JSON.parse(data.contents);
+        async function syncContent() {
+            try {
+                // استخدام AllOrigins لتجاوز حماية التطبيق (CORS)
+                const targetUrl = 'https://api.vidoza.net/v1/files';
+                const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+                const response = await fetch(proxyUrl, {
+                    headers: {
+                        // طريقة التفويض الرسمية كما في الوثائق التي أرسلتها
+                        'Authorization': `Bearer ${API_KEY}`,
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const json = await response.json();
+                const result = JSON.parse(json.contents);
 
                 const listDiv = document.getElementById('list');
-                const msg = document.getElementById('msg');
+                const status = document.getElementById('status');
 
-                if (vidozaData.data && vidozaData.data.length > 0) {
-                    msg.style.display = 'none';
-                    vidozaData.data.forEach(file => {
-                        const card = document.createElement('div');
-                        card.className = 'anime-card';
-                        card.innerText = file.title;
-                        card.onclick = () => {
-                            document.getElementById('main-video').src = `https://vidoza.net/embed-${file.code}.html`;
+                if (result.data && result.data.length > 0) {
+                    status.style.display = 'none';
+                    result.data.forEach(file => {
+                        const div = document.createElement('div');
+                        div.className = 'card';
+                        div.innerText = file.title;
+                        div.onclick = () => {
+                            document.getElementById('player').src = `https://vidoza.net/embed-${file.id}.html`;
                             window.scrollTo(0,0);
                         };
-                        listDiv.appendChild(card);
+                        listDiv.appendChild(div);
                     });
                 } else {
-                    msg.innerText = "لا يوجد فيديوهات في حسابك حالياً";
+                    status.innerText = "لا توجد ملفات حالياً. ارفع أنمي جديد ليظهر هنا.";
                 }
             } catch (error) {
-                msg.innerText = "فشل الاتصال! تأكد من أن الـ API Token صحيح في الإعدادات";
+                status.innerText = "خطأ في المزامنة. تأكد من إعدادات الـ API";
             }
         }
-        loadContent();
+
+        syncContent();
     </script>
 </body>
 </html>
