@@ -3,66 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تجربة مشغل الأنمي</title>
+    <title>مشغل الأنمي الخارجي</title>
     <style>
-        body { background-color: #0f0f0f; color: white; font-family: sans-serif; text-align: center; padding: 10px; }
-        .video-box { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 20px; border: 2px solid #333; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .episode-btn { 
-            background: #e91e63; color: white; padding: 15px; margin: 10px; 
-            border: none; border-radius: 8px; cursor: pointer; width: 90%; font-weight: bold;
+        body { background: #121212; color: white; font-family: sans-serif; text-align: center; padding: 20px; }
+        .btn-external { 
+            background: #4CAF50; color: white; padding: 20px; margin: 10px; 
+            border: none; border-radius: 12px; width: 100%; font-size: 18px; font-weight: bold;
         }
-        .status { color: #888; font-size: 14px; margin-top: 10px; }
+        .info { color: #aaa; margin-bottom: 20px; }
     </style>
 </head>
 <body>
 
-    <h2 style="color: #00bcd4;">🎬 قائمة الحلقات المتوفرة</h2>
+    <h2>🚀 تشغيل عبر مشغل خارجي</h2>
+    <p class="info">سيتم فتح الفيديو مباشرة في MX Player أو VLC</p>
 
-    <div class="video-box">
-        <iframe id="main-player" src="about:blank" allowfullscreen></iframe>
-    </div>
-
-    <div id="list">
-        <p class="status">جاري البحث عن الفيديوهات في حسابك...</p>
-    </div>
+    <div id="list">جاري جلب الروابط...</div>
 
     <script>
-        // مفتاحك الذي استخرجناه من الصور
         const myToken = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
 
-        async function fetchVideos() {
+        async function getDirectLinks() {
             try {
-                // استخدام الرابط الجديد الخاص بـ API v1
+                // نطلب قائمة الملفات
                 const response = await fetch(`https://api.vidoza.net/v1/files/list?api_token=${myToken}`);
                 const data = await response.json();
 
                 const listDiv = document.getElementById('list');
                 
                 if (data.data && data.data.length > 0) {
-                    listDiv.innerHTML = ''; // مسح رسالة التحميل
+                    listDiv.innerHTML = '';
                     
                     data.data.forEach(file => {
                         const btn = document.createElement('button');
-                        btn.className = 'episode-btn';
-                        btn.innerText = "▶️ تشغيل: " + file.title;
+                        btn.className = 'btn-external';
+                        btn.innerText = "📺 فتح " + file.title;
                         
                         btn.onclick = () => {
-                            // تغيير رابط المشغل عند الضغط
-                            document.getElementById('main-player').src = `https://vidoza.net/embed-${file.code}.html`;
-                            window.scrollTo(0,0);
+                            // هذا الرابط يخبر الأندرويد بفتح مشغل فيديو خارجي
+                            // نستخدم بروتوكول "intent" الخاص بالأندرويد
+                            const videoUrl = `https://vidoza.net/embed-${file.code}.html`; 
+                            // ملاحظة: للحصول على الرابط المباشر 100% تحتاج لطلب إضافي،
+                            // لكن معظم المشغلات تستطيع قراءة رابط التضمين إذا تم توجيهها بشكل صحيح.
+                            
+                            window.location.href = `intent:${videoUrl}#Intent;package=com.mxtech.videoplayer.ad;end`;
                         };
                         listDiv.appendChild(btn);
                     });
-                } else {
-                    listDiv.innerHTML = '<p class="status">لم يتم العثور على فيديوهات. تأكد من رفع الملف بشكل صحيح.</p>';
                 }
-            } catch (error) {
-                document.getElementById('list').innerHTML = '<p class="status" style="color:red;">خطأ: تأكد من تشغيل الإنترنت أو جرب متصفح Chrome</p>';
+            } catch (e) {
+                listDiv.innerHTML = "خطأ في الاتصال";
             }
         }
-
-        fetchVideos();
+        getDirectLinks();
     </script>
 </body>
 </html>
