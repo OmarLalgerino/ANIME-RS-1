@@ -3,59 +3,76 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مشغل الأنمي التلقائي</title>
+    <title>ANIME RS - Live Data</title>
     <style>
-        body { background: #000; color: #fff; margin: 0; font-family: sans-serif; text-align: center; }
-        .player-header { padding: 10px; background: #111; border-bottom: 2px solid #00bcd4; }
-        .video-box { position: sticky; top: 0; width: 100%; aspect-ratio: 16/9; background: #000; z-index: 999; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .anime-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 15px; }
-        .anime-item { 
-            background: #1a1a1a; border: 1px solid #333; border-radius: 8px; 
-            padding: 15px; font-size: 14px; cursor: pointer; 
-        }
-        .anime-item:active { background: #00bcd4; color: #000; }
-        #loading { padding: 30px; color: #00bcd4; }
+        body { background-color: #0f0f0f; color: white; font-family: sans-serif; margin: 0; padding: 20px; }
+        .search-container { margin-bottom: 20px; }
+        #searchInput { width: 100%; padding: 12px; border-radius: 8px; border: none; background: #252525; color: white; }
+        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; }
+        .anime-card { background: #1a1a1a; border-radius: 10px; overflow: hidden; border-bottom: 3px solid #e50914; text-align: center; }
+        .anime-card img { width: 100%; height: 180px; object-fit: cover; }
+        .anime-card-info { padding: 8px; }
+        .anime-card-info h3 { font-size: 13px; margin: 5px 0; }
+        .loader { text-align: center; padding: 20px; color: #e50914; }
     </style>
 </head>
 <body>
 
-    <div class="video-box">
-        <iframe id="screen" src="" allowfullscreen></iframe>
+    <div class="search-container">
+        <input type="text" id="searchInput" placeholder="ابحث في ANIME RS...">
     </div>
 
-    <div id="loading">جاري جلب الفيديوهات...</div>
-    <div id="list" class="anime-grid"></div>
+    <div id="loader" class="loader">جاري جلب قائمة الأنمي...</div>
+    <div class="anime-grid" id="animeGrid"></div>
 
     <script>
-        const TOKEN = 'beh5wtrl4tyhnqefytw0ps3gu6hovzhlxkfeis5zxglr0at77xqgefdaw3va';
+        const sheetUrl = 'https://docs.google.com/spreadsheets/d/1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY/export?format=csv';
+        let allAnime = [];
 
-        async function getVideos() {
+        // دالة لجلب البيانات وتحويلها من CSV إلى Array
+        async function fetchAnimeData() {
             try {
-                // نستخدم الرابط المباشر مع التوكن كما في وثائق API Vidoza
-                const response = await fetch(`https://api.vidoza.net/v1/files?api_token=${TOKEN}`);
-                const json = await response.json();
+                const response = await fetch(sheetUrl);
+                const data = await response.text();
+                const rows = data.split('\n').slice(1); // تجاهل سطر العناوين
 
-                document.getElementById('loading').style.display = 'none';
-                const listDiv = document.getElementById('list');
+                allAnime = rows.map(row => {
+                    const columns = row.split(',');
+                    return {
+                        title: columns[0], // العمود الأول: الاسم
+                        img: columns[1],   // العمود الثاني: رابط الصورة
+                        rating: columns[2] // العمود الثالث: التقييم
+                    };
+                }).filter(a => a.title); // حذف السطور الفارغة
 
-                if (json.data && json.data.length > 0) {
-                    json.data.forEach(file => {
-                        const div = document.createElement('div');
-                        div.className = 'anime-item';
-                        div.innerText = file.title || file.name;
-                        div.onclick = () => {
-                            document.getElementById('screen').src = `https://vidoza.net/embed-${file.id}.html`;
-                            window.scrollTo({top: 0, behavior: 'smooth'});
-                        };
-                        listDiv.appendChild(div);
-                    });
-                }
-            } catch (err) {
-                document.getElementById('loading').innerText = "حدث خطأ. تأكد من إعدادات النطاق الداخلي.";
+                document.getElementById('loader').style.display = 'none';
+                displayAnime(allAnime);
+            } catch (error) {
+                document.getElementById('loader').innerText = "خطأ في تحميل البيانات. تأكد من إعدادات المشاركة.";
             }
         }
-        getVideos();
+
+        function displayAnime(list) {
+            const grid = document.getElementById('animeGrid');
+            grid.innerHTML = list.map(anime => `
+                <div class="anime-card">
+                    <img src="${anime.img}" onerror="this.src='https://via.placeholder.com/150x200?text=No+Image'">
+                    <div class="anime-card-info">
+                        <h3>${anime.title}</h3>
+                        <span style="color:#ffc107">⭐ ${anime.rating || 'N/A'}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // تفعيل البحث
+        document.getElementById('searchInput').addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const filtered = allAnime.filter(a => a.title.toLowerCase().includes(term));
+            displayAnime(filtered);
+        });
+
+        fetchAnimeData();
     </script>
 </body>
 </html>
