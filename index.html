@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS - السكربت الاحترافي</title>
+    <title>ANIME RS - الإصدار الاحترافي المطور</title>
     <style>
-        /* تصميم الواجهة */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #0f0f0f;
+            background-color: #0a0a0a;
             color: #ffffff;
             margin: 0;
             padding: 0;
@@ -19,10 +18,11 @@
 
         header {
             width: 100%;
-            background-color: #1a1a1a;
+            background-color: #111;
             padding: 15px 0;
             text-align: center;
-            border-bottom: 2px solid #ff0000;
+            border-bottom: 3px solid #e50914;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
         }
 
         .container {
@@ -31,24 +31,24 @@
             margin-top: 20px;
         }
 
-        /* حاوية الفيديو */
+        /* حاوية المشغل */
         .video-wrapper {
             position: relative;
             width: 100%;
             background: #000;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 0.3);
+            border: 1px solid #333;
         }
 
-        /* الإعلان العلوي المنظم */
+        /* إعلانك الخاص (الطبقة العلوية) */
         #top-ad-bar {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 45px;
-            background: linear-gradient(90deg, #ff0000, #990000);
+            height: 40px;
+            background: rgba(229, 9, 20, 0.9);
             color: white;
             z-index: 1000;
             display: flex;
@@ -56,69 +56,72 @@
             justify-content: space-between;
             padding: 0 15px;
             box-sizing: border-box;
-            font-size: 14px;
+            font-size: 13px;
+            font-weight: bold;
         }
 
-        /* الطبقة الواقية (تمنع إعلانات البوب أب المزعجة) */
-        #click-shield {
+        /* الطبقة الواقية ضد إعلانات جوجل والبوب أب */
+        #anti-ads-shield {
             position: absolute;
-            top: 45px;
+            top: 40px;
             left: 0;
             width: 100%;
-            height: calc(100% - 95px); /* يغطي الفيديو ويترك أزرار التحكم */
-            background: rgba(0,0,0,0.01);
-            z-index: 500;
+            height: calc(100% - 90px);
+            background: rgba(0,0,0,0.1);
+            z-index: 900;
             display: flex;
             align-items: center;
             justify-content: center;
             cursor: pointer;
+            backdrop-filter: blur(2px);
         }
 
-        #play-overlay-btn {
-            background: #ff0000;
+        #play-button {
+            background: #e50914;
             color: white;
             border: none;
-            padding: 15px 35px;
+            padding: 15px 40px;
             border-radius: 50px;
             font-size: 18px;
             font-weight: bold;
-            box-shadow: 0 0 15px rgba(255,0,0,0.6);
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.5);
+            transition: 0.3s;
         }
 
         iframe {
             width: 100%;
-            height: 450px;
+            height: 480px;
             border: none;
         }
 
-        /* شريط البحث وقائمة الحلقات */
-        .search-box {
-            width: 100%;
-            margin: 20px 0;
+        /* قائمة البحث والأنمي */
+        .search-section {
+            margin: 25px 0;
         }
 
-        .search-box input {
+        #searchInput {
             width: 100%;
-            padding: 12px;
+            padding: 15px;
             border-radius: 8px;
-            border: 1px solid #333;
-            background: #222;
+            border: 1px solid #444;
+            background: #181818;
             color: white;
+            font-size: 16px;
             outline: none;
             text-align: right;
         }
 
         .anime-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
             gap: 15px;
             margin-bottom: 50px;
         }
 
         .anime-card {
-            background: #1e1e1e;
-            padding: 10px;
+            background: #181818;
             border-radius: 10px;
+            padding: 10px;
             text-align: center;
             cursor: pointer;
             border: 1px solid transparent;
@@ -126,8 +129,14 @@
         }
 
         .anime-card:hover {
-            border: 1px solid #ff0000;
-            background: #252525;
+            border: 1px solid #e50914;
+            transform: scale(1.05);
+        }
+
+        .anime-card h4 {
+            margin: 10px 0 0;
+            font-size: 14px;
+            color: #ccc;
         }
     </style>
 </head>
@@ -141,19 +150,19 @@
     
     <div class="video-wrapper">
         <div id="top-ad-bar">
-            <span>📢 إعلان: شاهد حلقاتك المفضلة بدون انقطاع</span>
-            <button style="background:none; border:1px solid white; color:white; cursor:pointer;" onclick="document.getElementById('top-ad-bar').style.display='none'">إغلاق</button>
+            <span>📺 إعلان: استمتع بمشاهدة الأنمي المفضل لديك</span>
+            <button onclick="this.parentElement.style.display='none'" style="background:none; border:1px solid white; color:white; padding:2px 10px; border-radius:5px; cursor:pointer;">X</button>
         </div>
 
-        <div id="click-shield" onclick="this.style.display='none'">
-            <button id="play-overlay-btn">▶ اضغط للتشغيل الآمن</button>
+        <div id="anti-ads-shield" onclick="unlockPlayer()">
+            <button id="play-button">▶ تشغيل آمن</button>
         </div>
 
         <iframe id="main-player" src="" allowfullscreen></iframe>
     </div>
 
-    <div class="search-box">
-        <input type="text" id="searchInput" placeholder="ابحث عن حلقة..." onkeyup="filterAnime()">
+    <div class="search-section">
+        <input type="text" id="searchInput" placeholder="ابحث عن الحلقة..." onkeyup="filterAnime()">
     </div>
 
     <div id="anime-list" class="anime-grid">
@@ -162,17 +171,16 @@
 </div>
 
 <script>
-    // رابط جدول البيانات الخاص بك
     const sheetID = "1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY";
     const url = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json`;
 
     let allAnime = [];
 
-    async function fetchData() {
+    // جلب البيانات من Google Sheets
+    async function loadData() {
         try {
             const response = await fetch(url);
             const text = await response.text();
-            // تنظيف بيانات جوجل وتحويلها لـ JSON
             const data = JSON.parse(text.substr(47).slice(0, -2));
             const rows = data.table.rows;
 
@@ -183,20 +191,20 @@
 
             renderAnime(allAnime);
         } catch (error) {
-            console.error("خطأ في جلب البيانات:", error);
+            console.error("خطأ في الاتصال بالبيانات");
         }
     }
 
     function renderAnime(list) {
         const container = document.getElementById('anime-list');
         container.innerHTML = '';
-
         list.forEach(item => {
             const card = document.createElement('div');
             card.className = 'anime-card';
             card.onclick = () => {
-                document.getElementById('main-player').src = `https://vidoza.net/embed-${item.videoID}.html`;
-                document.getElementById('click-shield').style.display = 'flex';
+                const player = document.getElementById('main-player');
+                player.src = `https://vidoza.net/embed-${item.videoID}.html`;
+                document.getElementById('anti-ads-shield').style.display = 'flex';
                 window.scrollTo({top: 0, behavior: 'smooth'});
             };
             card.innerHTML = `<h4>${item.title}</h4>`;
@@ -204,13 +212,29 @@
         });
     }
 
+    // وظيفة فك القفل ومنع فتح جوجل
+    function unlockPlayer() {
+        // منع مغادرة الصفحة (اعتراض محاولة فتح جوجل)
+        window.onbeforeunload = function() {
+            return "هل تريد مغادرة التطبيق؟";
+        };
+
+        // إخفاء الحماية
+        document.getElementById('anti-ads-shield').style.display = 'none';
+
+        // الغاء الاعتراض بعد 3 ثواني للسماح باستخدام التطبيق بشكل عادي
+        setTimeout(() => {
+            window.onbeforeunload = null;
+        }, 3000);
+    }
+
     function filterAnime() {
-        const query = document.getElementById('searchInput').value.toLowerCase();
-        const filtered = allAnime.filter(a => a.title.toLowerCase().includes(query));
+        const q = document.getElementById('searchInput').value.toLowerCase();
+        const filtered = allAnime.filter(a => a.title.toLowerCase().includes(q));
         renderAnime(filtered);
     }
 
-    window.onload = fetchData;
+    window.onload = loadData;
 </script>
 
 </body>
