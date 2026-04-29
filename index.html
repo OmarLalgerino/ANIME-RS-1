@@ -1,59 +1,71 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS PLAYER</title>
+    <title>ANIME RS Player</title>
     <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            background-color: #000; /* خلفية سوداء مثل التطبيقات الكبرى */
-            overflow: hidden;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        body { background-color: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 0; }
+        .player-box { width: 100%; height: 250px; background: #111; position: sticky; top: 0; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .list-container { padding: 15px; }
+        .episode-item { 
+            background: #222; padding: 12px; margin-bottom: 8px; 
+            border-radius: 5px; cursor: pointer; border: 1px solid #333;
         }
-
-        .video-container {
-            position: relative;
-            width: 100%;
-            height: 100%;
-        }
-
-        /* الكود السحري للـ Sandbox */
-        iframe {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            border: none;
-        }
+        .episode-item:hover { background: #ff4500; }
     </style>
 </head>
 <body>
 
-    <div class="video-container">
-        <iframe 
-            src="https://vidoza.net/embed-XXXXXXX.html" 
-            sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts" 
-            allowfullscreen="true" 
-            webkitallowfullscreen="true" 
-            mozallowfullscreen="true">
-        </iframe>
+    <div class="player-box" id="playerBox">
+        <p style="text-align:center; padding-top:100px; color:#555;">اختر حلقة للمشاهدة</p>
+    </div>
+
+    <div class="list-container" id="episodeList">
+        جاري جلب الحلقات من الجدول...
     </div>
 
     <script>
-        // هذا الجزء اختياري: يضمن أن الفيديو لا يخرج عن إطار الهاتف
-        window.addEventListener('message', function(e) {
-            if (e.data === 'close') {
-                // يمكنك إضافة أكشن هنا عند إغلاق الفيديو
-            }
-        });
-    </script>
+        // رابط جدول البيانات الخاص بك بصيغة CSV (بعد نشره للويب)
+        const sheetUrl = "https://docs.google.com/spreadsheets/d/1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY/export?format=csv";
 
+        async function loadEpisodes() {
+            try {
+                const response = await fetch(sheetUrl);
+                const data = await response.text();
+                const rows = data.split('\n').slice(1); // تخطي العنوان
+                
+                let listHtml = '';
+                rows.forEach(row => {
+                    const columns = row.split(',');
+                    if (columns.length >= 2) {
+                        const title = columns[0]; // اسم الأنمي/الحلقة
+                        const rawLink = columns[1].trim(); // الرابط
+                        
+                        // تحويل رابط Vidoza إلى Embed
+                        const embedUrl = rawLink.replace(".net/", ".net/embed-").replace(".html", "") + ".html";
+
+                        listHtml += `<div class="episode-item" onclick="playVideo('${embedUrl}')">${title}</div>`;
+                    }
+                });
+                document.getElementById('episodeList').innerHTML = listHtml;
+            } catch (error) {
+                document.getElementById('episodeList').innerHTML = "خطأ في جلب البيانات. تأكد من نشر الجدول للويب.";
+            }
+        }
+
+        function playVideo(url) {
+            // تفعيل الـ Sandbox لمنع إعلانات Vidoza المنبثقة
+            document.getElementById('playerBox').innerHTML = `
+                <iframe 
+                    src="${url}" 
+                    sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts" 
+                    allowfullscreen>
+                </iframe>`;
+        }
+
+        loadEpisodes();
+    </script>
 </body>
 </html>
