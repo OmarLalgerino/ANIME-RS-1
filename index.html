@@ -3,59 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS Player</title>
+    <title>ANIME RS - Clean Player</title>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; }
-        .video-container { position: relative; width: 100%; height: 100%; }
-        /* طبقة حماية إضافية لمنع النقرات العشوائية */
-        .ad-shield { position: absolute; top: 0; left: 0; width: 100%; height: 40px; z-index: 999; background: transparent; }
+        body { background-color: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 0; }
+        .video-box { width: 100%; height: 240px; background: #111; position: sticky; top: 0; z-index: 100; }
+        iframe { width: 100%; height: 100%; border: none; }
+        .list-container { padding: 15px; }
+        .episode-item { 
+            background: #1a1a1a; padding: 15px; margin-bottom: 10px; 
+            border-radius: 8px; border-right: 4px solid #ff4500; cursor: pointer;
+        }
+        .episode-item:active { background: #333; }
     </style>
 </head>
 <body>
 
-<div class="video-container">
-    <div class="ad-shield"></div>
-    
-    <iframe 
-        id="player"
-        src="رابط_الحلقة_الممتاز_الخاص_بك" 
-        /* تم إضافة صلاحية top-navigation لمنع خطأ 404 مع منع المنبثقات */
-        sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
-        style="width: 100%; height: 100%; border: none;"
-        allowfullscreen>
-    </iframe>
-</div>
+    <div class="video-box" id="playerSection">
+        <p style="text-align:center; padding-top:100px; color:#555;">اختر حلقة للمشاهدة</p>
+    </div>
 
-<script>
-    // سكربت منع النوافذ المنبثقة (بمثابة DNS داخلي للروابط)
-    (function() {
-        const originalOpen = window.open;
-        window.open = function(url) {
-            // إذا كان الرابط يحتوي على كلمات مشبوهة يتم حظره فوراً
-            const blackList = ['ads', 'pop', 'doubleclick', 'sex', 'adult', '18'];
-            const isBlocked = blackList.some(word => url.toLowerCase().includes(word));
-            
-            if (isBlocked) {
-                console.log("تم حظر إعلان غير لائق: " + url);
-                return null;
+    <div class="list-container" id="episodeList">
+        جاري جلب قائمة الحلقات...
+    </div>
+
+    <script>
+        // رابط جدول البيانات الخاص بك بصيغة التصدير
+        const sheetID = "1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY";
+        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetID}/export?format=csv`;
+
+        // نظام الفلترة لمنع المحتوى 18+ (بمثابة DNS داخلي)
+        const blockedKeywords = ['ads', 'sex', 'adult', '18', 'porn', 'popads'];
+
+        async function loadData() {
+            try {
+                const response = await fetch(csvUrl);
+                const data = await response.text();
+                const rows = data.split('\n').slice(1);
+                
+                let html = '';
+                rows.forEach(row => {
+                    const cols = row.split(',');
+                    if (cols.length >= 2) {
+                        const title = cols[0].trim();
+                        const link = cols[1].trim();
+                        html += `<div class="episode-item" onclick="playVideo('${link}')">${title}</div>`;
+                    }
+                });
+                document.getElementById('episodeList').innerHTML = html;
+            } catch (e) {
+                document.getElementById('episodeList').innerHTML = "خطأ في الاتصال بالجدول.";
             }
-            return originalOpen(url);
-        };
-    })();
-
-    // تصحيح الرابط تلقائياً لضمان عدم ظهور 404
-    window.onload = function() {
-        let frame = document.getElementById('player');
-        let url = frame.src;
-        // التأكد من أن الرابط بصيغة embed ليعمل داخل التطبيق
-        if (url.includes("vidoza.net/") && !url.includes("embed-")) {
-            frame.src = url.replace("vidoza.net/", "vidoza.net/embed-") + ".html";
         }
-        if (url.includes("dood") && !url.includes("/e/")) {
-            frame.src = url.replace("/d/", "/e/");
-        }
-    };
-</script>
 
+        function playVideo(url) {
+            // تحويل الروابط تلقائياً لتعمل بدون 404
+            let embedUrl = url;
+            if (url.includes("vidoza.net/")) embedUrl = url.replace("vidoza.net/", "vidoza.net/embed-") + ".html";
+            if (url.includes("dood")) embedUrl = url.replace("/d/", "/e/");
+
+            // تطبيق الـ Sandbox مع صلاحيات تسمح بالتشغيل وتمنع المنبثقات
+            document.getElementById('playerSection').innerHTML = `
+                <iframe 
+                    src="${embedUrl}" 
+                    sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation" 
+                    allowfullscreen>
+                </iframe>`;
+            
+            // مراقبة المحتوى ومنع فتح أي روابط خارجية مشبوهة
+            window.open = function(targetUrl) {
+                const isBlocked = blockedKeywords.some(word => targetUrl.toLowerCase().includes(word));
+                if (isBlocked) {
+                    console.warn("تم حظر محتوى غير لائق");
+                    return null;
+                }
+                return window.open(targetUrl, '_blank');
+            };
+        }
+
+        loadData();
+    </script>
 </body>
 </html>
