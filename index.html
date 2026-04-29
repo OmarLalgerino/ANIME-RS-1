@@ -1,86 +1,77 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS - Clean Player</title>
     <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 0; }
-        .video-box { width: 100%; height: 240px; background: #111; position: sticky; top: 0; z-index: 100; }
+        body { background-color: #000; color: #fff; margin: 0; font-family: sans-serif; }
+        #video-container { width: 100%; height: 250px; background: #111; position: fixed; top: 0; z-index: 100; }
         iframe { width: 100%; height: 100%; border: none; }
-        .list-container { padding: 15px; }
-        .episode-item { 
-            background: #1a1a1a; padding: 15px; margin-bottom: 10px; 
-            border-radius: 8px; border-right: 4px solid #ff4500; cursor: pointer;
+        #list { margin-top: 260px; padding: 15px; }
+        .episode { 
+            background: #222; padding: 15px; margin-bottom: 10px; 
+            border-radius: 5px; cursor: pointer; border-right: 5px solid #ff4500;
         }
-        .episode-item:active { background: #333; }
     </style>
 </head>
 <body>
 
-    <div class="video-box" id="playerSection">
-        <p style="text-align:center; padding-top:100px; color:#555;">اختر حلقة للمشاهدة</p>
+<div id="video-container">
+    <div id="player">
+        <p style="text-align:center; padding-top:100px;">اختر حلقة للتشغيل</p>
     </div>
+</div>
 
-    <div class="list-container" id="episodeList">
-        جاري جلب قائمة الحلقات...
-    </div>
+<div id="list">جاري تحميل الحلقات...</div>
 
-    <script>
-        // رابط جدول البيانات الخاص بك بصيغة التصدير
-        const sheetID = "1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY";
-        const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetID}/export?format=csv`;
+<script>
+    // الـ ID الخاص بك الذي حددته
+    const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
+    // رابط التصدير الصحيح لمنع خطأ 404
+    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
-        // نظام الفلترة لمنع المحتوى 18+ (بمثابة DNS داخلي)
-        const blockedKeywords = ['ads', 'sex', 'adult', '18', 'porn', 'popads'];
-
-        async function loadData() {
-            try {
-                const response = await fetch(csvUrl);
-                const data = await response.text();
-                const rows = data.split('\n').slice(1);
-                
-                let html = '';
-                rows.forEach(row => {
-                    const cols = row.split(',');
-                    if (cols.length >= 2) {
-                        const title = cols[0].trim();
-                        const link = cols[1].trim();
-                        html += `<div class="episode-item" onclick="playVideo('${link}')">${title}</div>`;
-                    }
-                });
-                document.getElementById('episodeList').innerHTML = html;
-            } catch (e) {
-                document.getElementById('episodeList').innerHTML = "خطأ في الاتصال بالجدول.";
-            }
-        }
-
-        function playVideo(url) {
-            // تحويل الروابط تلقائياً لتعمل بدون 404
-            let embedUrl = url;
-            if (url.includes("vidoza.net/")) embedUrl = url.replace("vidoza.net/", "vidoza.net/embed-") + ".html";
-            if (url.includes("dood")) embedUrl = url.replace("/d/", "/e/");
-
-            // تطبيق الـ Sandbox مع صلاحيات تسمح بالتشغيل وتمنع المنبثقات
-            document.getElementById('playerSection').innerHTML = `
-                <iframe 
-                    src="${embedUrl}" 
-                    sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation" 
-                    allowfullscreen>
-                </iframe>`;
+    async function loadEpisodes() {
+        try {
+            const response = await fetch(SHEET_URL);
+            const data = await response.text();
+            const rows = data.split('\n').slice(1); // تخطي السطر الأول (العناوين)
             
-            // مراقبة المحتوى ومنع فتح أي روابط خارجية مشبوهة
-            window.open = function(targetUrl) {
-                const isBlocked = blockedKeywords.some(word => targetUrl.toLowerCase().includes(word));
-                if (isBlocked) {
-                    console.warn("تم حظر محتوى غير لائق");
-                    return null;
+            let listHtml = '';
+            rows.forEach(row => {
+                // تنظيف البيانات من علامات الاقتباس
+                const cols = row.split('","').map(col => col.replace(/"/g, ''));
+                if (cols.length >= 2) {
+                    const title = cols[0];
+                    const url = cols[1];
+                    listHtml += `<div class="episode" onclick="play('${url}')">${title}</div>`;
                 }
-                return window.open(targetUrl, '_blank');
-            };
+            });
+            document.getElementById('list').innerHTML = listHtml;
+        } catch (error) {
+            document.getElementById('list').innerHTML = "خطأ: تأكد من عمل Publish to Web للجدول";
         }
+    }
 
-        loadData();
-    </script>
+    function play(videoUrl) {
+        // تحويل الروابط تلقائياً لتعمل في المشغل
+        let finalUrl = videoUrl;
+        if (videoUrl.includes("vidoza.net/")) finalUrl = videoUrl.replace("vidoza.net/", "vidoza.net/embed-") + ".html";
+        if (videoUrl.includes("dood")) finalUrl = videoUrl.replace("/d/", "/e/");
+
+        // تطبيق فكرتك: Sandbox يمنع إعلانات الـ +18 والمنبثقات
+        document.getElementById('player').innerHTML = `
+            <iframe 
+                src="${finalUrl}" 
+                sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation" 
+                allowfullscreen>
+            </iframe>`;
+
+        // منع أي نافذة إعلانية منبثقة تحاول الخروج
+        window.open = function() { return null; };
+    }
+
+    loadEpisodes();
+</script>
+
 </body>
 </html>
