@@ -5,67 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANIME RS Player</title>
     <style>
-        body { background-color: #000; color: #fff; font-family: sans-serif; margin: 0; padding: 0; }
-        .player-box { width: 100%; height: 250px; background: #111; position: sticky; top: 0; }
-        iframe { width: 100%; height: 100%; border: none; }
-        .list-container { padding: 15px; }
-        .episode-item { 
-            background: #222; padding: 12px; margin-bottom: 8px; 
-            border-radius: 5px; cursor: pointer; border: 1px solid #333;
-        }
-        .episode-item:hover { background: #ff4500; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background-color: #000; overflow: hidden; }
+        .video-container { position: relative; width: 100%; height: 100%; }
+        /* طبقة حماية إضافية لمنع النقرات العشوائية */
+        .ad-shield { position: absolute; top: 0; left: 0; width: 100%; height: 40px; z-index: 999; background: transparent; }
     </style>
 </head>
 <body>
 
-    <div class="player-box" id="playerBox">
-        <p style="text-align:center; padding-top:100px; color:#555;">اختر حلقة للمشاهدة</p>
-    </div>
+<div class="video-container">
+    <div class="ad-shield"></div>
+    
+    <iframe 
+        id="player"
+        src="رابط_الحلقة_الممتاز_الخاص_بك" 
+        /* تم إضافة صلاحية top-navigation لمنع خطأ 404 مع منع المنبثقات */
+        sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation-by-user-activation"
+        style="width: 100%; height: 100%; border: none;"
+        allowfullscreen>
+    </iframe>
+</div>
 
-    <div class="list-container" id="episodeList">
-        جاري جلب الحلقات من الجدول...
-    </div>
-
-    <script>
-        // رابط جدول البيانات الخاص بك بصيغة CSV (بعد نشره للويب)
-        const sheetUrl = "https://docs.google.com/spreadsheets/d/1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY/export?format=csv";
-
-        async function loadEpisodes() {
-            try {
-                const response = await fetch(sheetUrl);
-                const data = await response.text();
-                const rows = data.split('\n').slice(1); // تخطي العنوان
-                
-                let listHtml = '';
-                rows.forEach(row => {
-                    const columns = row.split(',');
-                    if (columns.length >= 2) {
-                        const title = columns[0]; // اسم الأنمي/الحلقة
-                        const rawLink = columns[1].trim(); // الرابط
-                        
-                        // تحويل رابط Vidoza إلى Embed
-                        const embedUrl = rawLink.replace(".net/", ".net/embed-").replace(".html", "") + ".html";
-
-                        listHtml += `<div class="episode-item" onclick="playVideo('${embedUrl}')">${title}</div>`;
-                    }
-                });
-                document.getElementById('episodeList').innerHTML = listHtml;
-            } catch (error) {
-                document.getElementById('episodeList').innerHTML = "خطأ في جلب البيانات. تأكد من نشر الجدول للويب.";
+<script>
+    // سكربت منع النوافذ المنبثقة (بمثابة DNS داخلي للروابط)
+    (function() {
+        const originalOpen = window.open;
+        window.open = function(url) {
+            // إذا كان الرابط يحتوي على كلمات مشبوهة يتم حظره فوراً
+            const blackList = ['ads', 'pop', 'doubleclick', 'sex', 'adult', '18'];
+            const isBlocked = blackList.some(word => url.toLowerCase().includes(word));
+            
+            if (isBlocked) {
+                console.log("تم حظر إعلان غير لائق: " + url);
+                return null;
             }
-        }
+            return originalOpen(url);
+        };
+    })();
 
-        function playVideo(url) {
-            // تفعيل الـ Sandbox لمنع إعلانات Vidoza المنبثقة
-            document.getElementById('playerBox').innerHTML = `
-                <iframe 
-                    src="${url}" 
-                    sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts" 
-                    allowfullscreen>
-                </iframe>`;
+    // تصحيح الرابط تلقائياً لضمان عدم ظهور 404
+    window.onload = function() {
+        let frame = document.getElementById('player');
+        let url = frame.src;
+        // التأكد من أن الرابط بصيغة embed ليعمل داخل التطبيق
+        if (url.includes("vidoza.net/") && !url.includes("embed-")) {
+            frame.src = url.replace("vidoza.net/", "vidoza.net/embed-") + ".html";
         }
+        if (url.includes("dood") && !url.includes("/e/")) {
+            frame.src = url.replace("/d/", "/e/");
+        }
+    };
+</script>
 
-        loadEpisodes();
-    </script>
 </body>
 </html>
