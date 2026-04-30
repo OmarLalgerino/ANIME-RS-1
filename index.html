@@ -3,25 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS Player</title>
+    <title>ANIME RS - Player</title>
     <style>
-        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: sans-serif; overflow: hidden; }
-        #video-section { width: 100%; height: 230px; background: #000; position: fixed; top: 0; z-index: 100; }
+        body { background-color: #000; color: #fff; margin: 0; font-family: sans-serif; }
+        #video-container { width: 100%; height: 230px; position: fixed; top: 0; background: #000; z-index: 999; }
         iframe { width: 100%; height: 100%; border: none; }
-        #list { margin-top: 245px; padding: 15px; }
-        .episode-card { background: #1a1a1a; padding: 15px; margin-bottom: 12px; border-radius: 12px; border-right: 5px solid #ff4500; cursor: pointer; }
-        .anime-title { font-size: 16px; font-weight: bold; color: #ff4500; }
+        #list { margin-top: 240px; padding: 15px; }
+        .card { background: #1a1a1a; padding: 15px; margin-bottom: 10px; border-radius: 8px; border-left: 4px solid #ff4500; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div id="video-section">
-    <div id="player">
-        <div style="text-align:center; padding-top:90px; color:#444;">اختر حلقة للمشاهدة</div>
+<div id="video-container">
+    <div id="player_area">
+        <div style="text-align:center; padding-top:90px; color:#555;">اختر حلقة للمشاهدة</div>
     </div>
 </div>
 
-<div id="list">جاري التحميل...</div>
+<div id="list">جاري تحميل القائمة...</div>
 
 <script>
     const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
@@ -36,32 +35,27 @@
             rows.forEach(row => {
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
                 if (cols.length >= 2) {
-                    html += `<div class="episode-card" onclick="playVideo('${cols[1]}')">
-                                <div class="anime-title">${cols[0]}</div>
-                                <div class="ep-info">الحلقة: ${cols[2] || '1'}</div>
-                             </div>`;
+                    // نرسل الكود (مثل mxict) فقط للدالة
+                    html += `<div class="card" onclick="play('${cols[1]}')"><b>${cols[0]}</b><br>الحلقة: ${cols[2] || '1'}</div>`;
                 }
             });
             document.getElementById('list').innerHTML = html;
-        } catch (e) { document.getElementById('list').innerHTML = "خطأ في الجلب"; }
+        } catch (e) { document.getElementById('list').innerHTML = "خطأ في جلب البيانات"; }
     }
 
-    function playVideo(key) {
-        let finalUrl = key.includes("http") ? key : `https://seekstreaming.com/embed-${key}.html`;
+    function play(key) {
+        // نستخدم رابط التضمين المباشر لتجاوز الإعلانات قدر الإمكان
+        let embedUrl = `https://animers.embedseek.online/#${key}`;
         
-        // هنا نعطيه ما يريد: حذفنا سمة sandbox تماماً
-        // وأضفنا صلاحيات الـ allow التي يطلبها المتصفح الحديث
-        document.getElementById('player').innerHTML = `
+        document.getElementById('player_area').innerHTML = `
             <iframe 
-                src="${finalUrl}" 
-                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                src="${embedUrl}" 
                 allowfullscreen 
-                frameborder="0">
+                allow="autoplay; fullscreen">
             </iframe>`;
     }
 
     loadData();
 </script>
-
 </body>
 </html>
