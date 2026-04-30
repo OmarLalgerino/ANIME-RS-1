@@ -3,77 +3,105 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS Player</title>
+    <title>متصفح ANIME RS</title>
     <style>
-        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: sans-serif; overflow-x: hidden; }
-        #video-section { 
-            width: 100%; height: 230px; background: #000; 
-            position: fixed; top: 0; z-index: 100; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
+        body { margin: 0; padding: 0; font-family: sans-serif; background: #f4f4f4; display: flex; flex-direction: column; height: 100vh; }
+        
+        /* شريط العنوان */
+        .toolbar {
+            background: #222;
+            padding: 10px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        iframe { width: 100%; height: 100%; border: none; }
-        #list { margin-top: 245px; padding: 15px; }
-        .episode-card { 
-            background: #1a1a1a; padding: 15px; margin-bottom: 12px; 
-            border-radius: 12px; border-right: 5px solid #ff4500; cursor: pointer; 
+
+        .toolbar input {
+            flex: 1;
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
         }
-        .anime-title { font-size: 16px; font-weight: bold; color: #ff4500; }
-        .ep-info { font-size: 14px; color: #bbb; }
+
+        .btn {
+            background: #ff4500;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn:active { background: #e03e00; }
+
+        /* منطقة العرض */
+        .browser-view {
+            flex: 1;
+            width: 100%;
+            border: none;
+            background: white;
+        }
+
+        /* رسالة تنبيهية */
+        .warning {
+            font-size: 10px;
+            color: #aaa;
+            text-align: center;
+            padding: 2px;
+            background: #111;
+        }
     </style>
 </head>
 <body>
 
-<div id="video-section">
-    <div id="player">
-        <div style="text-align:center; padding-top:90px; color:#444;">اختر حلقة للمشاهدة</div>
+    <div class="toolbar">
+        <button class="btn" onclick="goBack()">◀</button>
+        <button class="btn" onclick="reload()">↻</button>
+        <input type="text" id="urlInput" placeholder="أدخل الرابط هنا (https://...)" value="https://www.google.com">
+        <button class="btn" onclick="goToUrl()">انطلق</button>
     </div>
-</div>
 
-<div id="list">جاري تحميل القائمة...</div>
+    <div class="warning">ملاحظة: بعض المواقع (مثل جوجل) تمنع العرض داخل إطارات لأسباب أمنية.</div>
 
-<script>
-    const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
-    const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+    <iframe id="browserFrame" class="browser-view" src="https://www.google.com/search?igu=1"></iframe>
 
-    async function loadData() {
-        try {
-            const response = await fetch(SHEET_URL);
-            const text = await response.text();
-            const rows = text.split('\n').slice(1); 
-            let html = '';
-            rows.forEach(row => {
-                const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
-                if (cols.length >= 2) {
-                    // نرسل الكود mxict فقط
-                    html += `<div class="episode-card" onclick="playVideo('${cols[1]}')">
-                                <div class="anime-title">${cols[0]}</div>
-                                <div class="ep-info">الحلقة: ${cols[2] || '1'}</div>
-                             </div>`;
-                }
-            });
-            document.getElementById('list').innerHTML = html;
-        } catch (e) { document.getElementById('list').innerHTML = "خطأ في جلب البيانات"; }
-    }
+    <script>
+        const iframe = document.getElementById('browserFrame');
+        const urlInput = document.getElementById('urlInput');
 
-    function playVideo(key) {
-        // التعديل الجوهري هنا:
-        // الرابط الذي أرسلته (#mxict) هو واجهة عرض، بينما الـ iframe يحتاج رابط التضمين المباشر
-        let embedUrl = `https://seekstreaming.com/embed-${key}.html`;
-
-        document.getElementById('player').innerHTML = `
-            <iframe 
-                src="${embedUrl}" 
-                allowfullscreen 
-                allow="autoplay; fullscreen"
-                frameborder="0">
-            </iframe>`;
+        // وظيفة الذهاب للرابط
+        function goToUrl() {
+            let url = urlInput.value.trim();
             
-        // منع النوافذ المنبثقة لتقليل رسائل الخطأ
-        window.open = function() { return null; };
-    }
+            // إضافة https إذا لم تكن موجودة
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                url = 'https://' + url;
+            }
+            
+            iframe.src = url;
+        }
 
-    loadData();
-</script>
+        // إعادة التحميل
+        function reload() {
+            iframe.src = iframe.src;
+        }
+
+        // العودة للخلف (تعمل فقط إذا كانت السياسة الأمنية للموقع تسمح)
+        function goBack() {
+            window.history.back();
+        }
+
+        // الضغط على Enter للبحث
+        urlInput.addEventListener("keyup", function(event) {
+            if (event.key === "Enter") {
+                goToUrl();
+            }
+        });
+    </script>
 
 </body>
 </html>
