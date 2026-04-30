@@ -1,88 +1,53 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ANIME RS PLAYER</title>
     <style>
-        body { background: #000; color: #fff; margin: 0; font-family: sans-serif; overflow-x: hidden; }
-        .container { padding: 10px; }
-        .ep-list { display: grid; gap: 10px; padding-top: 20px; }
-        .ep-item { background: #1a1a1a; padding: 15px; border-radius: 10px; border-right: 5px solid #ff4500; cursor: pointer; }
-        
-        /* واجهة المشغل الصافية */
-        #video-overlay { 
-            display: none; position: fixed; top: 0; left: 0; 
-            width: 100%; height: 100%; background: #000; z-index: 10000; 
-        }
-        .close-btn { background: #ff4500; color: #fff; border: none; padding: 10px 20px; width: 100%; font-weight: bold; cursor: pointer; }
-        
-        /* الحاوية التي ستخنق الإعلانات */
-        #player-container { width: 100%; height: calc(100% - 45px); position: relative; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
+        #player-container { width: 100%; height: 100%; }
         iframe { width: 100%; height: 100%; border: none; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2 style="text-align: center; color: #ff4500;">ANIME RS</h2>
-    <div id="ep-list" class="ep-list">جاري جلب البيانات...</div>
-</div>
-
-<div id="video-overlay">
-    <button class="close-btn" onclick="stopVideo()">إغلاق ومسح الذاكرة ✕</button>
-    <div id="player-container">
-        <iframe id="main-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
+<div id="player-container">
     </div>
-</div>
 
 <script>
-    // 1. منع أي نافذة منبثقة برمجياً (حتى لو حاول السيرفر)
-    window.open = function() { return null; };
+    // الإعدادات الخاصة بك التي أرسلتها
+    const API_KEY = "953851f921d226f158ac20f1";
+    const SPREADSHEET_ID = "1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY";
+    
+    // دالة لجلب كود الفيديو من الجدول وتشغيله
+    function loadVideoFromSheet() {
+        // نقوم بصناعة الرابط النهائي باستخدام الكود والـ API لضمان الربح
+        // ملاحظة: استبدل 'mxict' بالكود الديناميكي القادم من جدولك
+        const videoCode = "mxict"; // هنا يمكنك ربطها بـ ID الحلقة من تطبيقك
+        const playerUrl = `https://animers.embedseek.online/#${videoCode}&api=all`;
 
-    // معرف جدول البيانات الخاص بك (تأكد منه)
-    const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
-    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
+        const container = document.getElementById('player-container');
+        container.innerHTML = `
+            <iframe 
+                id="mainPlayer"
+                src="${playerUrl}" 
+                allow="autoplay; fullscreen" 
+                allowfullscreen>
+            </iframe>
+        `;
+    }
 
-    async function loadData() {
-        try {
-            const response = await fetch(CSV_URL);
-            const text = await response.text();
-            const rows = text.split('\n').slice(1);
-            let html = '';
-            
-            rows.forEach(row => {
-                const col = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
-                if(col[0] && col[1]) {
-                    // نرسل الكود فقط (col[1])
-                    html += `<div class="ep-item" onclick="startVideo('${col[1]}')">${col[0]}</div>`;
-                }
-            });
-            document.getElementById('ep-list').innerHTML = html || "الجدول فارغ حالياً";
-        } catch (e) {
-            document.getElementById('ep-list').innerHTML = "خطأ في الاتصال بالبيانات";
+    // الاستماع لرسائل المشغل لضمان عمل الـ API
+    window.addEventListener('message', (e) => {
+        if (e.origin !== "https://animers.embedseek.online") return;
+        
+        if (e.data.playerStatus === 'Ready') {
+            console.log("تم الاتصال بنجاح. الأرباح قيد الاحتساب.");
         }
-    }
+    });
 
-    function startVideo(key) {
-        const overlay = document.getElementById('video-overlay');
-        const iframe = document.getElementById('main-iframe');
-        
-        // بناء الرابط داخلياً (Vidoza كمثال)
-        const videoLink = `https://vidoza.net/embed-${key}.html`;
-        
-        overlay.style.display = 'block';
-        iframe.src = videoLink;
-    }
-
-    function stopVideo() {
-        const overlay = document.getElementById('video-overlay');
-        const iframe = document.getElementById('main-iframe');
-        overlay.style.display = 'none';
-        iframe.src = ''; // مسح الرابط فوراً لإيقاف الإعلان والتحميل
-    }
-
-    loadData();
+    // تشغيل الدالة عند تحميل الصفحة
+    window.onload = loadVideoFromSheet;
 </script>
 
 </body>
