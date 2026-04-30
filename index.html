@@ -5,33 +5,30 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANIME RS Player</title>
     <style>
-        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: sans-serif; }
         #video-section { 
             width: 100%; height: 230px; background: #000; 
-            position: fixed; top: 0; z-index: 100; box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            position: fixed; top: 0; z-index: 100;
         }
         iframe { width: 100%; height: 100%; border: none; }
         #list { margin-top: 245px; padding: 15px; }
         .episode-card { 
             background: #1a1a1a; padding: 15px; margin-bottom: 12px; 
-            border-radius: 10px; border-right: 4px solid #ff4500; 
-            cursor: pointer; transition: 0.3s;
+            border-radius: 10px; border-right: 4px solid #ff4500; cursor: pointer;
         }
-        .episode-card:active { background: #333; transform: scale(0.98); }
         .anime-title { font-size: 16px; font-weight: bold; color: #ff4500; }
-        .ep-info { font-size: 14px; color: #bbb; margin-top: 5px; }
-        .loading { text-align: center; margin-top: 50px; color: #555; }
+        .ep-info { font-size: 14px; color: #bbb; }
     </style>
 </head>
 <body>
 
 <div id="video-section">
     <div id="player">
-        <div style="text-align:center; padding-top:90px; color:#444;">اختر حلقة لبدء المشاهدة</div>
+        <div style="text-align:center; padding-top:90px; color:#444;">اختر حلقة للمشاهدة</div>
     </div>
 </div>
 
-<div id="list" class="loading">جاري جلب البيانات من الجدول...</div>
+<div id="list">جاري التحميل...</div>
 
 <script>
     const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
@@ -42,53 +39,43 @@
             const response = await fetch(SHEET_URL);
             const text = await response.text();
             const rows = text.split('\n').slice(1); 
-            
             let html = '';
             rows.forEach(row => {
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
-                
-                if (cols.length >= 3) {
-                    const animeName = cols[0]; 
-                    const videoKey  = cols[1]; // هنا تضع الكود مثل mxict
-                    const epNumber  = cols[2]; 
-                    
-                    html += `
-                        <div class="episode-card" onclick="playVideo('${videoKey}')">
-                            <div class="anime-title">${animeName}</div>
-                            <div class="ep-info">${epNumber}</div>
-                        </div>`;
+                if (cols.length >= 2) {
+                    html += `<div class="episode-card" onclick="playVideo('${cols[1]}')">
+                                <div class="anime-title">${cols[0]}</div>
+                                <div class="ep-info">${cols[2] || ''}</div>
+                             </div>`;
                 }
             });
-            document.getElementById('list').innerHTML = html || "القائمة فارغة، تأكد من تعبئة الجدول.";
-        } catch (error) {
-            document.getElementById('list').innerHTML = "خطأ في جلب البيانات.";
-        }
+            document.getElementById('list').innerHTML = html;
+        } catch (e) { document.getElementById('list').innerHTML = "خطأ في الجلب"; }
     }
 
     function playVideo(key) {
-        let embedUrl = "";
+        let finalUrl = "";
         
-        // تعديل الرابط ليتوافق مع سيرفرك الجديد vid3rb
+        // إذا وضعت الكود فقط (مثل mxict)
         if (!key.includes("http")) {
-            // إذا وضعت الكود فقط (مثل mxict) سيقوم السكريبت بتحويله لرابط المشغل الخاص بك
-            embedUrl = `https://animers.embedseek.online/#${key}`;
+            finalUrl = `https://seekstreaming.com/embed-${key}.html`;
         } else {
-            embedUrl = key;
+            // إذا وضعت الرابط كاملاً، نتأكد أنه بصيغة embed
+            if (key.includes("seekstreaming.com/") && !key.includes("embed-")) {
+                finalUrl = key.replace("seekstreaming.com/", "seekstreaming.com/embed-") + ".html";
+            } else {
+                finalUrl = key;
+            }
         }
 
-        // حل مشكلة Sandbox: السماح بالميزات الضرورية لعمل المشغل
+        // إزالة الـ Sandbox نهائياً للسماح لسيرفر SeekStreaming بالعمل
         document.getElementById('player').innerHTML = `
             <iframe 
-                src="${embedUrl}" 
-                width="100%" 
-                height="100%" 
-                frameborder="0" 
-                sandbox="allow-forms allow-pointer-lock allow-same-origin allow-scripts allow-top-navigation" 
-                allowfullscreen>
+                src="${finalUrl}" 
+                allowfullscreen 
+                allow="autoplay; fullscreen"
+                frameborder="0">
             </iframe>`;
-            
-        // تعطيل النوافذ المنبثقة الإعلانية قدر الإمكان
-        window.open = function() { return null; };
     }
 
     loadData();
