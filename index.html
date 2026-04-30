@@ -5,145 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANIME RS Player</title>
     <style>
-        /* تصميم الواجهة */
-        body { 
-            background-color: #0d0d0d; 
-            color: #fff; 
-            margin: 0; 
-            font-family: 'Segoe UI', sans-serif; 
-            overflow-x: hidden; 
-        }
-        
-        /* منطقة المشغل الثابتة في الأعلى */
-        #video-section { 
-            width: 100%; 
-            height: 230px; 
-            background: #000; 
-            position: fixed; 
-            top: 0; 
-            z-index: 100; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.8);
-        }
-        
-        iframe { 
-            width: 100%; 
-            height: 100%; 
-            border: none; 
-        }
-
-        /* قائمة الحلقات أسفل المشغل */
-        #list { 
-            margin-top: 245px; 
-            padding: 15px; 
-        }
-
-        .episode-card { 
-            background: #1a1a1a; 
-            padding: 15px; 
-            margin-bottom: 12px; 
-            border-radius: 12px; 
-            border-right: 5px solid #ff4500; 
-            cursor: pointer; 
-            transition: transform 0.2s, background 0.2s;
-        }
-
-        .episode-card:active { 
-            background: #262626; 
-            transform: scale(0.97); 
-        }
-
-        .anime-title { 
-            font-size: 16px; 
-            font-weight: bold; 
-            color: #ff4500; 
-            margin-bottom: 5px;
-        }
-
-        .ep-info { 
-            font-size: 14px; 
-            color: #bbb; 
-        }
-
-        .status-msg {
-            text-align: center;
-            margin-top: 50px;
-            color: #666;
-        }
+        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: sans-serif; overflow: hidden; }
+        #video-section { width: 100%; height: 230px; background: #000; position: fixed; top: 0; z-index: 100; }
+        iframe { width: 100%; height: 100%; border: none; }
+        #list { margin-top: 245px; padding: 15px; }
+        .episode-card { background: #1a1a1a; padding: 15px; margin-bottom: 12px; border-radius: 12px; border-right: 5px solid #ff4500; cursor: pointer; }
+        .anime-title { font-size: 16px; font-weight: bold; color: #ff4500; }
     </style>
 </head>
 <body>
 
 <div id="video-section">
     <div id="player">
-        <div style="text-align:center; padding-top:90px; color:#555; font-size: 14px;">
-            جاري تهيئة المشغل... اختر حلقة
-        </div>
+        <div style="text-align:center; padding-top:90px; color:#444;">اختر حلقة للمشاهدة</div>
     </div>
 </div>
 
-<div id="list" class="status-msg">جاري جلب الحلقات من السيرفر...</div>
+<div id="list">جاري التحميل...</div>
 
 <script>
-    // بيانات الجدول (Google Sheet)
     const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
     const SHEET_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
-    // دالة جلب البيانات
     async function loadData() {
         try {
             const response = await fetch(SHEET_URL);
             const text = await response.text();
             const rows = text.split('\n').slice(1); 
-            
             let html = '';
             rows.forEach(row => {
                 const cols = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
-                
                 if (cols.length >= 2) {
-                    const title = cols[0]; // اسم الأنمي
-                    const key   = cols[1]; // كود الفيديو (مثل mxict)
-                    const ep    = cols[2] || "1"; // رقم الحلقة
-                    
-                    html += `
-                        <div class="episode-card" onclick="playVideo('${key}')">
-                            <div class="anime-title">${title}</div>
-                            <div class="ep-info">رقم الحلقة: ${ep}</div>
-                        </div>`;
+                    html += `<div class="episode-card" onclick="playVideo('${cols[1]}')">
+                                <div class="anime-title">${cols[0]}</div>
+                                <div class="ep-info">الحلقة: ${cols[2] || '1'}</div>
+                             </div>`;
                 }
             });
-            document.getElementById('list').innerHTML = html || "لم يتم العثور على حلقات.";
-            document.getElementById('list').classList.remove('status-msg');
-        } catch (error) {
-            document.getElementById('list').innerHTML = "خطأ في الاتصال بالجدول. تأكد من نشره للويب.";
-        }
+            document.getElementById('list').innerHTML = html;
+        } catch (e) { document.getElementById('list').innerHTML = "خطأ في الجلب"; }
     }
 
-    // دالة تشغيل الفيديو
     function playVideo(key) {
-        let finalUrl = "";
+        let finalUrl = key.includes("http") ? key : `https://seekstreaming.com/embed-${key}.html`;
         
-        // تحويل الكود إلى رابط Embed متوافق مع سيرفر SeekStreaming
-        if (!key.includes("http")) {
-            finalUrl = `https://seekstreaming.com/embed-${key}.html`;
-        } else {
-            // إذا كان الرابط كاملاً، نتأكد أنه بصيغة embed-
-            finalUrl = key.includes("embed-") ? key : key.replace("seekstreaming.com/", "seekstreaming.com/embed-") + ".html";
-        }
-
-        // أهم جزء: الـ Sandbox المعدل للسماح بالتشغيل دون رسالة Opss
+        // هنا نعطيه ما يريد: حذفنا سمة sandbox تماماً
+        // وأضفنا صلاحيات الـ allow التي يطلبها المتصفح الحديث
         document.getElementById('player').innerHTML = `
             <iframe 
                 src="${finalUrl}" 
-                sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-presentation"
+                allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                 allowfullscreen 
                 frameborder="0">
             </iframe>`;
-
-        // منع محاولات فتح النوافذ الإعلانية الجديدة
-        window.open = function() { return { focus: function() {} }; };
     }
 
-    // بدء العمل
     loadData();
 </script>
 
