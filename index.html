@@ -5,19 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ANIME RS Player</title>
     <style>
-        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: sans-serif; }
-        #video-section { 
-            width: 100%; height: 230px; background: #000; 
-            position: fixed; top: 0; z-index: 100;
-        }
+        body { background-color: #0d0d0d; color: #fff; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        #video-section { width: 100%; height: 230px; background: #000; position: fixed; top: 0; z-index: 100; }
         iframe { width: 100%; height: 100%; border: none; }
         #list { margin-top: 245px; padding: 15px; }
-        .episode-card { 
-            background: #1a1a1a; padding: 15px; margin-bottom: 12px; 
-            border-radius: 10px; border-right: 4px solid #ff4500; cursor: pointer;
-        }
+        .episode-card { background: #1a1a1a; padding: 15px; margin-bottom: 12px; border-radius: 10px; border-right: 4px solid #ff4500; cursor: pointer; }
         .anime-title { font-size: 16px; font-weight: bold; color: #ff4500; }
-        .ep-info { font-size: 14px; color: #bbb; }
     </style>
 </head>
 <body>
@@ -28,7 +21,7 @@
     </div>
 </div>
 
-<div id="list">جاري التحميل...</div>
+<div id="list">جاري تحميل الحلقات...</div>
 
 <script>
     const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
@@ -45,37 +38,34 @@
                 if (cols.length >= 2) {
                     html += `<div class="episode-card" onclick="playVideo('${cols[1]}')">
                                 <div class="anime-title">${cols[0]}</div>
-                                <div class="ep-info">${cols[2] || ''}</div>
+                                <div class="ep-info">الحلقة: ${cols[2] || '1'}</div>
                              </div>`;
                 }
             });
             document.getElementById('list').innerHTML = html;
-        } catch (e) { document.getElementById('list').innerHTML = "خطأ في الجلب"; }
+        } catch (e) { document.getElementById('list').innerHTML = "خطأ في جلب البيانات من الجدول"; }
     }
 
     function playVideo(key) {
         let finalUrl = "";
-        
-        // إذا وضعت الكود فقط (مثل mxict)
+        // تحويل الكود لرابط Embed مباشر لسيرفر SeekStreaming
         if (!key.includes("http")) {
             finalUrl = `https://seekstreaming.com/embed-${key}.html`;
         } else {
-            // إذا وضعت الرابط كاملاً، نتأكد أنه بصيغة embed
-            if (key.includes("seekstreaming.com/") && !key.includes("embed-")) {
-                finalUrl = key.replace("seekstreaming.com/", "seekstreaming.com/embed-") + ".html";
-            } else {
-                finalUrl = key;
-            }
+            finalUrl = key.includes("embed-") ? key : key.replace("seekstreaming.com/", "seekstreaming.com/embed-") + ".html";
         }
 
-        // إزالة الـ Sandbox نهائياً للسماح لسيرفر SeekStreaming بالعمل
+        // السر هنا: السماح ببعض ميزات الـ Sandbox ومنع البعض الآخر لمنع الإعلانات المنبثقة
         document.getElementById('player').innerHTML = `
             <iframe 
                 src="${finalUrl}" 
+                sandbox="allow-forms allow-scripts allow-same-origin allow-presentation"
                 allowfullscreen 
-                allow="autoplay; fullscreen"
                 frameborder="0">
             </iframe>`;
+            
+        // كود إضافي لمنع الـ WebView من فتح أي رابط خارجي تلقائياً
+        window.onbeforeunload = function() { return false; };
     }
 
     loadData();
