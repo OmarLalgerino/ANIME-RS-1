@@ -1,54 +1,88 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANIME RS PLAYER</title>
     <style>
-        body { background: #000; margin: 0; color: white; text-align: center; font-family: sans-serif; }
-        #player-wrapper { position: relative; width: 100%; height: 300px; background: #111; }
+        body { background: #000; color: #fff; margin: 0; font-family: sans-serif; overflow-x: hidden; }
+        .container { padding: 10px; }
+        .ep-list { display: grid; gap: 10px; padding-top: 20px; }
+        .ep-item { background: #1a1a1a; padding: 15px; border-radius: 10px; border-right: 5px solid #ff4500; cursor: pointer; }
+        
+        /* واجهة المشغل الصافية */
+        #video-overlay { 
+            display: none; position: fixed; top: 0; left: 0; 
+            width: 100%; height: 100%; background: #000; z-index: 10000; 
+        }
+        .close-btn { background: #ff4500; color: #fff; border: none; padding: 10px 20px; width: 100%; font-weight: bold; cursor: pointer; }
+        
+        /* الحاوية التي ستخنق الإعلانات */
+        #player-container { width: 100%; height: calc(100% - 45px); position: relative; }
         iframe { width: 100%; height: 100%; border: none; }
-        .status { padding: 10px; font-size: 12px; color: #555; }
     </style>
 </head>
 <body>
 
-<div id="player-wrapper">
-    <iframe 
-        id="anime-frame" 
-        src="https://seekstreaming.com/embed-mxict.html" 
-        sandbox="allow-scripts allow-same-origin allow-forms"
-        allowfullscreen>
-    </iframe>
+<div class="container">
+    <h2 style="text-align: center; color: #ff4500;">ANIME RS</h2>
+    <div id="ep-list" class="ep-list">جاري جلب البيانات...</div>
 </div>
-<div class="status" id="stat">جاري محاكاة مشاهدة الإعلان...</div>
+
+<div id="video-overlay">
+    <button class="close-btn" onclick="stopVideo()">إغلاق ومسح الذاكرة ✕</button>
+    <div id="player-container">
+        <iframe id="main-iframe" src="" sandbox="allow-scripts allow-same-origin allow-forms" allowfullscreen></iframe>
+    </div>
+</div>
 
 <script>
-    const iframe = document.getElementById('anime-frame');
-    const statusText = document.getElementById('stat');
+    // 1. منع أي نافذة منبثقة برمجياً (حتى لو حاول السيرفر)
+    window.open = function() { return null; };
 
-    // 1. وظيفة لخداع السيرفر: منع فتح نوافذ جديدة مع إرسال إشارة نجاح
-    window.open = function() {
-        console.log("تم اعتراض محاولة فتح إعلان - إرسال إشارة 'شوهد' للسيرفر");
-        statusText.innerText = "تم تخطي الإعلان بنجاح! جاري تشغيل الفيديو...";
-        statusText.style.color = "#4CAF50";
-        return null; // نرجع null لكي يظن السكريبت أن النافذة فتحت بنجاح
-    };
+    // معرف جدول البيانات الخاص بك (تأكد منه)
+    const SHEET_ID = '1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY';
+    const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv`;
 
-    // 2. محاكاة التفاعل (User Gesture)
-    // السيرفرات تنتظر نقرة، هذا الكود يجعل أي نقرة على الشاشة تذهب مباشرة للمشغل
-    document.addEventListener('click', function() {
-        // نرسل تركيز (Focus) للإطار لجعله يظن أن المستخدم ضغط بداخله
-        iframe.focus();
-        console.log("تفاعل المستخدم مسجل");
-    });
+    async function loadData() {
+        try {
+            const response = await fetch(CSV_URL);
+            const text = await response.text();
+            const rows = text.split('\n').slice(1);
+            let html = '';
+            
+            rows.forEach(row => {
+                const col = row.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/"/g, '').trim());
+                if(col[0] && col[1]) {
+                    // نرسل الكود فقط (col[1])
+                    html += `<div class="ep-item" onclick="startVideo('${col[1]}')">${col[0]}</div>`;
+                }
+            });
+            document.getElementById('ep-list').innerHTML = html || "الجدول فارغ حالياً";
+        } catch (e) {
+            document.getElementById('ep-list').innerHTML = "خطأ في الاتصال بالبيانات";
+        }
+    }
 
-    // 3. محاولة "حقن" كود التشغيل التلقائي (إذا سمحت سياسة الموقع)
-    iframe.onload = function() {
-        setTimeout(() => {
-            // نرسل رسالة للإطار (PostMessage) لعل السيرفر يستجيب لأوامر التشغيل
-            iframe.contentWindow.postMessage('{"event":"command","func":"playVideo","args":""}', '*');
-        }, 2000);
-    };
+    function startVideo(key) {
+        const overlay = document.getElementById('video-overlay');
+        const iframe = document.getElementById('main-iframe');
+        
+        // بناء الرابط داخلياً (Vidoza كمثال)
+        const videoLink = `https://vidoza.net/embed-${key}.html`;
+        
+        overlay.style.display = 'block';
+        iframe.src = videoLink;
+    }
+
+    function stopVideo() {
+        const overlay = document.getElementById('video-overlay');
+        const iframe = document.getElementById('main-iframe');
+        overlay.style.display = 'none';
+        iframe.src = ''; // مسح الرابط فوراً لإيقاف الإعلان والتحميل
+    }
+
+    loadData();
 </script>
 
 </body>
