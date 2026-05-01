@@ -1,53 +1,906 @@
-<!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ANIME RS - مشاهدة الأنمي بجودة عالية</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800;900&family=Bebas+Neue&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        dark: { 900: '#0a0a0a', 800: '#0f0f0f', 700: '#1a1a1a', 600: '#2a2a2a', 500: '#3a3a3a' },
+                        primary: { DEFAULT: '#e74c3c', light: '#ff6b55', dark: '#c0392b' },
+                        accent: { DEFAULT: '#f39c12', light: '#f1c40f' }
+                    },
+                    fontFamily: {
+                        cairo: ['Cairo', 'sans-serif'],
+                        bebas: ['Bebas Neue', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
     <style>
-        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: #000; overflow: hidden; }
-        #player-container { width: 100%; height: 100%; }
-        iframe { width: 100%; height: 100%; border: none; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background: #0a0a0a; color: #fff; font-family: 'Cairo', sans-serif; overflow-x: hidden; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #1a1a1a; }
+        ::-webkit-scrollbar-thumb { background: #e74c3c; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #ff6b55; }
+        
+        .header-glass { background: rgba(15, 15, 15, 0.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+        .card-hover { transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .card-hover:hover { transform: translateY(-8px) scale(1.03); box-shadow: 0 20px 40px rgba(231, 76, 60, 0.3); }
+        
+        .hero-slide { position: absolute; inset: 0; opacity: 0; transition: opacity 1s ease; }
+        .hero-slide.active { opacity: 1; }
+        
+        .btn-glow { position: relative; overflow: hidden; }
+        .btn-glow::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; background: rgba(255,255,255,0.2); border-radius: 50%; transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s; }
+        .btn-glow:hover::before { width: 300px; height: 300px; }
+        
+        .shimmer { background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.05) 50%, transparent 100%); background-size: 200% 100%; animation: shimmer 2s infinite; }
+        @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+        
+        .badge-shine { background: linear-gradient(135deg, #e74c3c, #f39c12); background-size: 200% 200%; animation: gradientMove 3s ease infinite; }
+        @keyframes gradientMove { 0%, 100% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } }
+        
+        .mobile-menu { transform: translateX(100%); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); }
+        .mobile-menu.open { transform: translateX(0); }
+        
+        .search-expand { width: 0; opacity: 0; transition: all 0.4s ease; }
+        .search-expand.active { width: 250px; opacity: 1; }
+        
+        .episode-num { background: linear-gradient(135deg, #e74c3c, #c0392b); clip-path: polygon(0 0, 100% 0, 85% 100%, 0 100%); }
+        
+        .play-overlay { background: radial-gradient(circle, rgba(231,76,60,0.8) 0%, transparent 70%); opacity: 0; transition: opacity 0.3s ease; }
+        .card-hover:hover .play-overlay { opacity: 1; }
+        
+        .nav-line { height: 3px; background: linear-gradient(90deg, #e74c3c, #f39c12); position: absolute; bottom: 0; transition: all 0.3s ease; }
+        
+        .server-btn { transition: all 0.3s ease; border: 2px solid transparent; }
+        .server-btn:hover, .server-btn.active { border-color: #e74c3c; background: rgba(231, 76, 60, 0.1); transform: scale(1.05); }
+        
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+        .float-anim { animation: float 3s ease-in-out infinite; }
+        
+        @keyframes pulse-ring { 0% { transform: scale(0.8); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+        .pulse-ring::before { content: ''; position: absolute; inset: -4px; border: 2px solid #e74c3c; border-radius: 50%; animation: pulse-ring 1.5s infinite; }
+        
+        .watch-section { min-height: 100vh; }
+        
+        .comment-avatar { background: linear-gradient(135deg, #e74c3c, #f39c12); }
+        
+        @media (max-width: 768px) {
+            .search-expand.active { width: 180px; }
+            .hero-text h1 { font-size: 1.8rem !important; }
+        }
     </style>
 </head>
 <body>
 
-<div id="player-container">
+<!-- ========== HEADER ========== -->
+<header id="header" class="header-glass fixed top-0 w-full z-50 border-b border-white/5">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center justify-between h-16 md:h-20">
+            <!-- Logo -->
+            <a href="#" class="flex items-center gap-2 group" onclick="showPage('home')">
+                <div class="relative">
+                    <span class="font-bebas text-3xl md:text-4xl tracking-wider bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">ANIME</span>
+                    <span class="font-bebas text-3xl md:text-4xl tracking-wider text-white mr-1">RS</span>
+                    <div class="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full pulse-ring"></div>
+                </div>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <nav class="hidden lg:flex items-center gap-8">
+                <a href="#" onclick="showPage('home')" class="nav-item relative text-white font-semibold py-2 hover:text-primary transition-colors">الرئيسية</a>
+                <a href="#" class="nav-item relative text-gray-400 py-2 hover:text-primary transition-colors">أفلام</a>
+                <a href="#" class="nav-item relative text-gray-400 py-2 hover:text-primary transition-colors">مسلسلات</a>
+                <a href="#" class="nav-item relative text-gray-400 py-2 hover:text-primary transition-colors">مواعيد الحلقات</a>
+                <a href="#" class="nav-item relative text-gray-400 py-2 hover:text-primary transition-colors">أخبار</a>
+            </nav>
+
+            <!-- Right Section -->
+            <div class="flex items-center gap-3">
+                <!-- Search -->
+                <div class="flex items-center">
+                    <input id="searchInput" type="text" placeholder="ابحث عن أنمي..." class="search-expand bg-dark-600/50 border border-white/10 rounded-full px-4 py-2 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50">
+                    <button onclick="toggleSearch()" class="w-10 h-10 rounded-full bg-dark-600/50 hover:bg-primary/20 flex items-center justify-center transition-all border border-white/5">
+                        <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    </button>
+                </div>
+
+                <!-- Notification -->
+                <button class="hidden md:flex w-10 h-10 rounded-full bg-dark-600/50 hover:bg-primary/20 items-center justify-center transition-all border border-white/5 relative">
+                    <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+                    <span class="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[10px] flex items-center justify-center font-bold">3</span>
+                </button>
+
+                <!-- Account -->
+                <button onclick="showPage('account')" class="hidden md:flex items-center gap-2 bg-dark-600/50 hover:bg-dark-500 rounded-full px-3 py-1.5 border border-white/5 transition-all">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-sm font-bold">A</div>
+                    <span class="text-sm text-gray-300">حسابي</span>
+                </button>
+
+                <!-- Hamburger -->
+                <button onclick="toggleMobileMenu()" class="lg:hidden w-10 h-10 rounded-full bg-dark-600/50 hover:bg-primary/20 flex items-center justify-center transition-all border border-white/5">
+                    <div id="hamburgerIcon" class="flex flex-col gap-1.5">
+                        <span class="block w-5 h-0.5 bg-gray-400 transition-all duration-300" id="bar1"></span>
+                        <span class="block w-5 h-0.5 bg-gray-400 transition-all duration-300" id="bar2"></span>
+                        <span class="block w-3 h-0.5 bg-gray-400 transition-all duration-300" id="bar3"></span>
+                    </div>
+                </button>
+            </div>
+        </div>
     </div>
+</header>
+
+<!-- ========== MOBILE MENU ========== -->
+<div id="mobileMenu" class="mobile-menu fixed inset-y-0 right-0 w-80 bg-dark-800/98 backdrop-blur-xl z-[60] border-l border-white/5 shadow-2xl shadow-primary/5">
+    <div class="p-6 h-full flex flex-col">
+        <!-- Close Button -->
+        <div class="flex items-center justify-between mb-8">
+            <span class="font-bebas text-2xl tracking-wider bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">ANIME RS</span>
+            <button onclick="toggleMobileMenu()" class="w-10 h-10 rounded-full bg-dark-600 hover:bg-primary/20 flex items-center justify-center transition-all">
+                <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+            </button>
+        </div>
+
+        <!-- User Profile -->
+        <div class="flex items-center gap-3 p-4 bg-dark-700/50 rounded-2xl mb-6 border border-white/5">
+            <div class="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-lg font-bold">A</div>
+            <div>
+                <p class="font-semibold text-sm">أحمد محمد</p>
+                <p class="text-xs text-gray-500">ahmed@gmail.com</p>
+            </div>
+        </div>
+
+        <!-- Nav Links -->
+        <nav class="flex flex-col gap-1 flex-1">
+            <a href="#" onclick="showPage('home'); toggleMobileMenu()" class="flex items-center gap-3 p-3 rounded-xl bg-primary/10 text-primary font-semibold transition-all">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+                الرئيسية
+            </a>
+            <a href="#" class="flex items-center gap-3 p-3 rounded-xl text-gray-400 hover:bg-dark-600 hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z"/></svg>
+                أفلام
+            </a>
+            <a href="#" class="flex items-center gap-3 p-3 rounded-xl text-gray-400 hover:bg-dark-600 hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-8 12.5v-9l6 4.5-6 4.5z"/></svg>
+                مسلسلات
+            </a>
+            <a href="#" class="flex items-center gap-3 p-3 rounded-xl text-gray-400 hover:bg-dark-600 hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/></svg>
+                مواعيد الحلقات
+            </a>
+            <a href="#" class="flex items-center gap-3 p-3 rounded-xl text-gray-400 hover:bg-dark-600 hover:text-white transition-all">
+                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                المفضلة
+            </a>
+        </nav>
+
+        <!-- Settings -->
+        <div class="border-t border-white/5 pt-4 mt-4 flex items-center justify-between">
+            <button class="text-gray-500 hover:text-white transition-colors text-sm">الإعدادات</button>
+            <button class="text-red-400 hover:text-red-300 transition-colors text-sm">تسجيل خروج</button>
+        </div>
+    </div>
+</div>
+<div id="menuOverlay" class="fixed inset-0 bg-black/60 z-[55] hidden" onclick="toggleMobileMenu()"></div>
+
+<!-- ========== HOME PAGE ========== -->
+<main id="homePage">
+    <!-- HERO SLIDER -->
+    <section class="relative h-[70vh] md:h-[85vh] overflow-hidden">
+        <!-- Slides -->
+        <div id="heroSlider" class="relative w-full h-full">
+            <div class="hero-slide active" data-index="0">
+                <img src="https://cdn.myanimelist.net/images/anime/1764/129796l.jpg" alt="Solo Leveling" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-dark-900/80 via-transparent to-dark-900/40"></div>
+                <div class="absolute bottom-0 right-0 p-8 md:p-16 max-w-2xl hero-text">
+                    <span class="inline-block px-3 py-1 bg-primary rounded-full text-xs font-bold mb-4">جديد • 2024</span>
+                    <h1 class="text-4xl md:text-6xl font-bold mb-3 font-cairo">Solo Leveling</h1>
+                    <p class="text-gray-400 text-sm md:text-base mb-6 leading-relaxed line-clamp-3">في عالم حيث الصيادين - بشر يمتلكون قوى سحرية - يجب عليهم محاربة الوحوش القاتلة لحماية الجنس البشري من الفناء المؤكد...</p>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <button onclick="showPage('watch')" class="btn-glow bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-primary/30">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            شاهد الآن
+                        </button>
+                        <button class="bg-dark-600/70 hover:bg-dark-500 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all border border-white/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            قائمتي
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-4 mt-6 text-sm text-gray-500">
+                        <span>⭐ 9.2</span>
+                        <span>•</span>
+                        <span>أكشن • خيال</span>
+                        <span>•</span>
+                        <span>الحلقة 12</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-slide" data-index="1">
+                <img src="https://cdn.myanimelist.net/images/anime/1244/138851l.jpg" alt="One Piece" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-dark-900/80 via-transparent to-dark-900/40"></div>
+                <div class="absolute bottom-0 right-0 p-8 md:p-16 max-w-2xl hero-text">
+                    <span class="inline-block px-3 py-1 bg-accent rounded-full text-xs font-bold mb-4 text-dark-900">أسطوري • مستمر</span>
+                    <h1 class="text-4xl md:text-6xl font-bold mb-3 font-cairo">One Piece</h1>
+                    <p class="text-gray-400 text-sm md:text-base mb-6 leading-relaxed line-clamp-3">مونكي دي لوفي، فتى شاب يكتسب قوة المطاط بعد أكل فاكهة الشيطان عن طريق الخطأ، يبحر عبر البحار بحثاً عن كنز الون بيس...</p>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <button onclick="showPage('watch')" class="btn-glow bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-primary/30">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            شاهد الآن
+                        </button>
+                        <button class="bg-dark-600/70 hover:bg-dark-500 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all border border-white/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            قائمتي
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-4 mt-6 text-sm text-gray-500">
+                        <span>⭐ 9.5</span>
+                        <span>•</span>
+                        <span>مغامرة • كوميدي</span>
+                        <span>•</span>
+                        <span>+1100 حلقة</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="hero-slide" data-index="2">
+                <img src="https://cdn.myanimelist.net/images/anime/1015/138006l.jpg" alt="Jujutsu Kaisen" class="w-full h-full object-cover">
+                <div class="absolute inset-0 bg-gradient-to-t from-dark-900 via-dark-900/60 to-transparent"></div>
+                <div class="absolute inset-0 bg-gradient-to-r from-dark-900/80 via-transparent to-dark-900/40"></div>
+                <div class="absolute bottom-0 right-0 p-8 md:p-16 max-w-2xl hero-text">
+                    <span class="inline-block px-3 py-1 bg-primary rounded-full text-xs font-bold mb-4">الموسم 2 • 2024</span>
+                    <h1 class="text-4xl md:text-6xl font-bold mb-3 font-cairo">Jujutsu Kaisen</h1>
+                    <p class="text-gray-400 text-sm md:text-base mb-6 leading-relaxed line-clamp-3">يوجي إتادوري، طالب ثانوية يتمتع بقدرات بدنية خارقة، ينضم إلى منظمة سرايا السحر بعد ابتلاعه لإصبع سوكونا...</p>
+                    <div class="flex items-center gap-4 flex-wrap">
+                        <button onclick="showPage('watch')" class="btn-glow bg-primary hover:bg-primary-dark text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-all shadow-lg shadow-primary/30">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            شاهد الآن
+                        </button>
+                        <button class="bg-dark-600/70 hover:bg-dark-500 text-white px-6 py-3 rounded-xl font-semibold flex items-center gap-2 transition-all border border-white/10">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            قائمتي
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-4 mt-6 text-sm text-gray-500">
+                        <span>⭐ 9.0</span>
+                        <span>•</span>
+                        <span>أكشن • خارق</span>
+                        <span>•</span>
+                        <span>الموسم 2</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slider Controls -->
+        <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 flex items-center gap-3 z-10">
+            <button onclick="prevSlide()" class="w-10 h-10 rounded-full bg-dark-600/70 hover:bg-primary/50 flex items-center justify-center transition-all border border-white/10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+            <div id="sliderDots" class="flex items-center gap-2">
+                <button class="w-3 h-3 rounded-full bg-primary transition-all" data-slide="0"></button>
+                <button class="w-3 h-3 rounded-full bg-white/30 hover:bg-white/50 transition-all" data-slide="1"></button>
+                <button class="w-3 h-3 rounded-full bg-white/30 hover:bg-white/50 transition-all" data-slide="2"></button>
+            </div>
+            <button onclick="nextSlide()" class="w-10 h-10 rounded-full bg-dark-600/70 hover:bg-primary/50 flex items-center justify-center transition-all border border-white/10">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+            </button>
+        </div>
+    </section>
+
+    <!-- TRENDING NOW -->
+    <section class="py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-primary rounded-full"></div>
+                <h2 class="text-xl md:text-2xl font-bold">🔥 الأكثر رواجاً</h2>
+            </div>
+            <a href="#" class="text-primary text-sm font-semibold hover:text-primary-light transition-colors">عرض الكل ←</a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-5" id="trendingGrid">
+            <!-- Cards will be injected by JS -->
+        </div>
+    </section>
+
+    <!-- NEW EPISODES -->
+    <section class="py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-accent rounded-full"></div>
+                <h2 class="text-xl md:text-2xl font-bold">✨ حلقات جديدة</h2>
+                <span class="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full font-bold">مترجم</span>
+            </div>
+            <a href="#" class="text-primary text-sm font-semibold hover:text-primary-light transition-colors">عرض الكل ←</a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-5" id="newEpisodesGrid">
+            <!-- Cards will be injected by JS -->
+        </div>
+    </section>
+
+    <!-- DUBBED EPISODES -->
+    <section class="py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-blue-500 rounded-full"></div>
+                <h2 class="text-xl md:text-2xl font-bold">🎙️ مدبلج عربي</h2>
+            </div>
+            <a href="#" class="text-blue-400 text-sm font-semibold hover:text-blue-300 transition-colors">عرض الكل ←</a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 md:gap-5" id="dubbedGrid">
+            <!-- Cards will be injected by JS -->
+        </div>
+    </section>
+
+    <!-- MOVIES SECTION -->
+    <section class="py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div class="flex items-center justify-between mb-6">
+            <div class="flex items-center gap-3">
+                <div class="w-1.5 h-8 bg-purple-500 rounded-full"></div>
+                <h2 class="text-xl md:text-2xl font-bold">🎬 أفلام أنمي</h2>
+            </div>
+            <a href="#" class="text-purple-400 text-sm font-semibold hover:text-purple-300 transition-colors">عرض الكل ←</a>
+        </div>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-5" id="moviesGrid">
+            <!-- Cards will be injected by JS -->
+        </div>
+    </section>
+
+    <!-- GENRE TAGS -->
+    <section class="py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <h2 class="text-xl md:text-2xl font-bold mb-6">🏷️ تصفح حسب التصنيف</h2>
+        <div class="flex flex-wrap gap-3">
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">أكشن</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">رومانسي</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">كوميدي</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">خيال</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">مغامرة</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">رعب</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">دراما</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">خارق</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">شريحة حياة</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">رياضة</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">علمي خيال</a>
+            <a href="#" class="px-5 py-2.5 bg-dark-700 hover:bg-primary/20 hover:text-primary border border-white/5 rounded-full text-sm font-semibold transition-all hover:border-primary/30">إيسيكاي</a>
+        </div>
+    </section>
+
+    <!-- SCHEDULE -->
+    <section class="py-8 px-4 sm:px-6 max-w-7xl mx-auto">
+        <div class="flex items-center gap-3 mb-6">
+            <div class="w-1.5 h-8 bg-green-500 rounded-full"></div>
+            <h2 class="text-xl md:text-2xl font-bold">📅 مواعيد الحلقات</h2>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3" id="scheduleGrid">
+            <!-- Schedule cards injected by JS -->
+        </div>
+    </section>
+</main>
+
+<!-- ========== WATCH PAGE ========== -->
+<div id="watchPage" class="hidden watch-section pt-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-sm text-gray-500 mb-4 overflow-x-auto">
+            <a href="#" onclick="showPage('home')" class="hover:text-white transition-colors whitespace-nowrap">الرئيسية</a>
+            <span>›</span>
+            <a href="#" class="hover:text-white transition-colors whitespace-nowrap">مسلسلات</a>
+            <span>›</span>
+            <a href="#" class="hover:text-white transition-colors whitespace-nowrap">Solo Leveling</a>
+            <span>›</span>
+            <span class="text-primary">الحلقة 12</span>
+        </nav>
+
+        <!-- Video Player -->
+        <div class="relative bg-dark-700 rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border border-white/5">
+            <div class="aspect-video bg-dark-900 flex items-center justify-center relative">
+                <img src="https://cdn.myanimelist.net/images/anime/1764/129796l.jpg" alt="" class="absolute inset-0 w-full h-full object-cover opacity-30">
+                <div class="relative z-10 text-center">
+                    <button class="w-20 h-20 rounded-full bg-primary/90 hover:bg-primary flex items-center justify-center transition-all shadow-2xl shadow-primary/50 mb-4 float-anim">
+                        <svg class="w-8 h-8 text-white mr-1" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </button>
+                    <p class="text-gray-400 text-sm">اضغط للتشغيل</p>
+                </div>
+                <!-- Video Controls Bar -->
+                <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
+                    <div class="w-full h-1 bg-white/20 rounded-full mb-3 cursor-pointer group">
+                        <div class="h-full bg-primary rounded-full w-[35%] relative group-hover:h-1.5 transition-all">
+                            <div class="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full opacity-0 group-hover:opacity-100 transition-shadow shadow-lg"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <button class="text-white hover:text-primary transition-colors">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                            </button>
+                            <button class="text-white hover:text-primary transition-colors">
+                                <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+                            </button>
+                            <span class="text-sm text-gray-400">08:24 / 23:40</span>
+                        </div>
+                        <div class="flex items-center gap-4">
+                            <button class="text-white hover:text-primary transition-colors text-sm">جودة 1080p</button>
+                            <button class="text-white hover:text-primary transition-colors">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Episode Info -->
+        <div class="mt-6 flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+            <div>
+                <h1 class="text-2xl md:text-3xl font-bold mb-2">Solo Leveling - الحلقة 12</h1>
+                <p class="text-gray-400 text-sm leading-relaxed max-w-3xl">سونغ جين وو يواجه أقوى أعدائه حتى الآن في معركة حاسمة ستحدد مصير العالم.هل سيتمكن من التغلب على هذه القوة الهائلة؟</p>
+                <div class="flex items-center gap-4 mt-3 text-sm text-gray-500 flex-wrap">
+                    <span>⭐ 9.2 تقييم</span>
+                    <span>•</span>
+                    <span>23 دقيقة</span>
+                    <span>•</span>
+                    <span>أكشن • خيال</span>
+                    <span>•</span>
+                    <span>2024</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3 shrink-0">
+                <button class="bg-dark-700 hover:bg-primary/20 hover:text-primary text-gray-400 px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-white/5 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                    إعجاب
+                </button>
+                <button class="bg-dark-700 hover:bg-primary/20 hover:text-primary text-gray-400 px-4 py-2 rounded-xl flex items-center gap-2 transition-all border border-white/5 text-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 103.003 0M3.783 7.048C3.581 7.452 3.467 7.908 3.467 8.392c0 .484.114.94.316 1.342m0-2.684a3 3 0 110 2.684m0 2.684L12 19.392m0-6l-6.632 3.316"/></svg>
+                    مشاركة
+                </button>
+            </div>
+        </div>
+
+        <!-- Server Selection -->
+        <div class="mt-6 bg-dark-700/50 rounded-2xl p-5 border border-white/5">
+            <h3 class="text-lg font-bold mb-4 flex items-center gap-2">
+                <svg class="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24"><path d="M21 3H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h5v2h8v-2h5c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 14H3V5h18v12z"/></svg>
+                سيرفرات المشاهدة
+            </h3>
+            <div class="flex flex-wrap gap-3 mb-4">
+                <button class="server-btn active bg-dark-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">سيرفر 1 - HD</button>
+                <button class="server-btn bg-dark-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">سيرفر 2 - FHD</button>
+                <button class="server-btn bg-dark-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">سيرفر 3 - 4K</button>
+                <button class="server-btn bg-dark-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">سيرفر 4 - 720p</button>
+                <button class="server-btn bg-dark-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">سيرفر احتياطي</button>
+            </div>
+            
+            <!-- Quality Selection -->
+            <div class="flex items-center gap-3 text-sm">
+                <span class="text-gray-500">الجودة:</span>
+                <select class="bg-dark-600 border border-white/10 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-primary/50">
+                    <option>1080p Full HD</option>
+                    <option>720p HD</option>
+                    <option>480p SD</option>
+                    <option>360p</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- Episode Navigation -->
+        <div class="mt-6 flex items-center justify-between bg-dark-700/50 rounded-2xl p-4 border border-white/5">
+            <button class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors disabled:opacity-30">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                الحلقة 11
+            </button>
+            <button class="bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+                قائمة الحلقات
+            </button>
+            <button class="flex items-center gap-2 text-gray-400 hover:text-white transition-colors">
+                الحلقة 13
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+            </button>
+        </div>
+
+        <!-- Comments Section -->
+        <div class="mt-8 pb-12">
+            <h3 class="text-xl font-bold mb-6 flex items-center gap-2">
+                💬 التعليقات <span class="text-sm text-gray-500 font-normal">(247)</span>
+            </h3>
+
+            <!-- Comment Input -->
+            <div class="bg-dark-700/50 rounded-2xl p-5 border border-white/5 mb-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full comment-avatar flex items-center justify-center font-bold text-sm">A</div>
+                    <input type="text" placeholder="اكتب تعليقك هنا..." class="flex-1 bg-dark-600/50 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 transition-colors">
+                    <button class="bg-primary hover:bg-primary-dark text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition-all">إرسال</button>
+                </div>
+                <div class="flex items-center justify-center gap-2 text-xs text-gray-500">
+                    <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                    سجّل الدخول بحساب Gmail للتعليق
+                </div>
+            </div>
+
+            <!-- Comments List -->
+            <div class="space-y-4" id="commentsList">
+                <div class="bg-dark-700/30 rounded-2xl p-5 border border-white/5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center font-bold text-sm shrink-0">م</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-sm">محمد علي</span>
+                                <span class="text-xs text-gray-500">منذ ساعتين</span>
+                            </div>
+                            <p class="text-gray-300 text-sm leading-relaxed">حلقة رائعة جداً! الأنيميشن كان مذهل في مشهد القتال الأخير 🔥</p>
+                            <div class="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                <button class="hover:text-primary transition-colors flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+                                    42
+                                </button>
+                                <button class="hover:text-primary transition-colors">رد</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-dark-700/30 rounded-2xl p-5 border border-white/5 mr-8">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-teal-500 flex items-center justify-center font-bold text-sm shrink-0">س</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-sm">سارة أحمد</span>
+                                <span class="px-2 py-0.5 bg-primary/20 text-primary text-[10px] rounded-full font-bold">المترجم</span>
+                                <span class="text-xs text-gray-500">منذ ساعة</span>
+                            </div>
+                            <p class="text-gray-300 text-sm leading-relaxed">شكراً لكم! الترجمة تمت بعناية فائقة للحفاظ على روح الأنمي ❤️</p>
+                            <div class="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                <button class="hover:text-primary transition-colors flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+                                    28
+                                </button>
+                                <button class="hover:text-primary transition-colors">رد</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-dark-700/30 rounded-2xl p-5 border border-white/5">
+                    <div class="flex items-start gap-3">
+                        <div class="w-10 h-10 rounded-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center font-bold text-sm shrink-0">خ</div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-semibold text-sm">خالد حسن</span>
+                                <span class="text-xs text-gray-500">منذ 30 دقيقة</span>
+                            </div>
+                            <p class="text-gray-300 text-sm leading-relaxed">يا جماعة أنا متحمس جداً للموسم الثاني! الأنيميشن خرافي والموسيقى حماسية 🎵</p>
+                            <div class="flex items-center gap-4 mt-3 text-xs text-gray-500">
+                                <button class="hover:text-primary transition-colors flex items-center gap-1">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>
+                                    15
+                                </button>
+                                <button class="hover:text-primary transition-colors">رد</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="w-full mt-6 bg-dark-700/50 hover:bg-dark-600 text-gray-400 py-3 rounded-xl font-semibold text-sm transition-all border border-white/5">عرض المزيد من التعليقات</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== ACCOUNT PAGE ========== -->
+<div id="accountPage" class="hidden min-h-screen pt-24 pb-12 px-4 sm:px-6">
+    <div class="max-w-md mx-auto">
+        <div class="text-center mb-8">
+            <div class="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-3xl font-bold mx-auto mb-4 shadow-2xl shadow-primary/30">A</div>
+            <h2 class="text-2xl font-bold">سجّل دخولك</h2>
+            <p class="text-gray-500 text-sm mt-2">للمتابعة وحفظ مشاهداتك</p>
+        </div>
+
+        <div class="bg-dark-700/50 rounded-2xl p-6 border border-white/5 shadow-2xl">
+            <button class="w-full bg-white text-gray-800 hover:bg-gray-100 py-3.5 rounded-xl font-bold flex items-center justify-center gap-3 transition-all">
+                <svg class="w-5 h-5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.1c-.22-.66-.35-1.36-.35-2.1s.13-1.44.35-2.1V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                الدخول بحساب Gmail
+            </button>
+
+            <div class="flex items-center gap-3 my-6">
+                <div class="h-px bg-white/10 flex-1"></div>
+                <span class="text-gray-500 text-sm">أو</span>
+                <div class="h-px bg-white/10 flex-1"></div>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm text-gray-400 mb-1.5 block">البريد الإلكتروني</label>
+                    <input type="email" placeholder="example@gmail.com" class="w-full bg-dark-600/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 transition-colors">
+                </div>
+                <div>
+                    <label class="text-sm text-gray-400 mb-1.5 block">كلمة المرور</label>
+                    <input type="password" placeholder="••••••••" class="w-full bg-dark-600/50 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-primary/50 transition-colors">
+                </div>
+                <button class="w-full bg-primary hover:bg-primary-dark text-white py-3 rounded-xl font-bold transition-all">تسجيل الدخول</button>
+            </div>
+
+            <p class="text-center text-sm text-gray-500 mt-6">ليس لديك حساب؟ <a href="#" class="text-primary hover:text-primary-light transition-colors font-semibold">سجّل الآن</a></p>
+        </div>
+    </div>
+</div>
+
+<!-- ========== FOOTER ========== -->
+<footer id="siteFooter" class="border-t border-white/5 bg-dark-800 mt-8">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <span class="font-bebas text-3xl tracking-wider bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">ANIME</span>
+                <span class="font-bebas text-3xl tracking-wider text-white mr-1">RS</span>
+                <p class="text-gray-500 text-sm mt-3 leading-relaxed">موقعك الأول لمشاهدة الأنمي بجودة عالية مع ترجمة احترافية. نوفر لك أفضل تجربة مشاهدة.</p>
+                <div class="flex items-center gap-3 mt-4">
+                    <a href="#" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-primary/20 flex items-center justify-center transition-all border border-white/5">
+                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                    </a>
+                    <a href="#" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-primary/20 flex items-center justify-center transition-all border border-white/5">
+                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.21 1.791-4 4-4s4 1.79 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+                    </a>
+                    <a href="#" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-primary/20 flex items-center justify-center transition-all border border-white/5">
+                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M19.615 3.184c-3.604-.246-11.631-.245-15.23 0-3.897.266-4.356 2.62-4.385 8.816.029 6.185.484 8.549 4.385 8.816 3.6.245 11.626.246 15.23 0 3.897-.266 4.356-2.62 4.385-8.816-.029-6.185-.484-8.549-4.385-8.816zm-10.615 12.816v-8l8 3.993-8 4.007z"/></svg>
+                    </a>
+                    <a href="#" class="w-9 h-9 rounded-full bg-dark-600 hover:bg-primary/20 flex items-center justify-center transition-all border border-white/5">
+                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24"><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0553c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/></svg>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm mb-4 text-gray-300">روابط سريعة</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">الرئيسية</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">أفلام أنمي</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">مسلسلات أنمي</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">حلقات جديدة</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">مواعيد الحلقات</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm mb-4 text-gray-300">الأكثر مشاهدة</h4>
+                <ul class="space-y-2.5">
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">Solo Leveling</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">One Piece</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">Jujutsu Kaisen</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">Attack on Titan</a></li>
+                    <li><a href="#" class="text-gray-500 hover:text-primary transition-colors text-sm">Demon Slayer</a></li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold text-sm mb-4 text-gray-300">تواصل معنا</h4>
+                <ul class="space-y-2.5">
+                    <li class="flex items-center gap-2 text-gray-500 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                        support@animers.com
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-500 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        سياسة الخصوصية
+                    </li>
+                    <li class="flex items-center gap-2 text-gray-500 text-sm">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z"/></svg>
+                        شروط الاستخدام
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="border-t border-white/5 mt-8 pt-6 text-center">
+            <p class="text-gray-600 text-sm">© 2024 ANIME RS - جميع الحقوق محفوظة</p>
+        </div>
+    </div>
+</footer>
 
 <script>
-    // الإعدادات الخاصة بك التي أرسلتها
-    const API_KEY = "953851f921d226f158ac20f1";
-    const SPREADSHEET_ID = "1x5V6UbWbNIfHVCdQsadbWYkNDISVd7teHnOXt6CwoiY";
-    
-    // دالة لجلب كود الفيديو من الجدول وتشغيله
-    function loadVideoFromSheet() {
-        // نقوم بصناعة الرابط النهائي باستخدام الكود والـ API لضمان الربح
-        // ملاحظة: استبدل 'mxict' بالكود الديناميكي القادم من جدولك
-        const videoCode = "mxict"; // هنا يمكنك ربطها بـ ID الحلقة من تطبيقك
-        const playerUrl = `https://animers.embedseek.online/#${videoCode}&api=all`;
+// ===== DATA =====
+const animeData = {
+    trending: [
+        { title: 'Solo Leveling', ep: 'الحلقة 12', img: 'https://cdn.myanimelist.net/images/anime/1764/129796l.jpg', rating: 9.2, type: 'مترجم', genre: 'أكشن' },
+        { title: 'One Piece', ep: 'الحلقة 1105', img: 'https://cdn.myanimelist.net/images/anime/1244/138851l.jpg', rating: 9.5, type: 'مترجم', genre: 'مغامرة' },
+        { title: 'Jujutsu Kaisen S2', ep: 'الحلقة 23', img: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', rating: 9.0, type: 'مترجم', genre: 'أكشن' },
+        { title: 'Demon Slayer S4', ep: 'الحلقة 8', img: 'https://cdn.myanimelist.net/images/anime/1286/99889l.jpg', rating: 8.9, type: 'مترجم', genre: 'أكشن' },
+        { title: 'Attack on Titan', ep: 'النهاية', img: 'https://cdn.myanimelist.net/images/anime/10/47347l.jpg', rating: 9.1, type: 'مترجم', genre: 'دراما' },
+        { title: 'Chainsaw Man', ep: 'الحلقة 12', img: 'https://cdn.myanimelist.net/images/anime/1806/126216l.jpg', rating: 8.7, type: 'مترجم', genre: 'أكشن' },
+    ],
+    newEpisodes: [
+        { title: 'Blue Lock S2', ep: 'الحلقة 5', img: 'https://cdn.myanimelist.net/images/anime/1258/126929l.jpg', rating: 8.4, type: 'مترجم', genre: 'رياضة' },
+        { title: 'Kaiju No.8', ep: 'الحلقة 7', img: 'https://cdn.myanimelist.net/images/anime/1021/136555l.jpg', rating: 8.6, type: 'مترجم', genre: 'أكشن' },
+        { title: 'Dandadan', ep: 'الحلقة 10', img: 'https://cdn.myanimelist.net/images/anime/1139/142636l.jpg', rating: 8.8, type: 'مترجم', genre: 'كوميدي' },
+        { title: 'Wind Breaker', ep: 'الحلقة 9', img: 'https://cdn.myanimelist.net/images/anime/1786/141548l.jpg', rating: 8.2, type: 'مترجم', genre: 'أكشن' },
+        { title: 'Mushoku Tensei S2', ep: 'الحلقة 12', img: 'https://cdn.myanimelist.net/images/anime/1764/126929l.jpg', rating: 8.7, type: 'مترجم', genre: 'إيسيكاي' },
+        { title: 'Frieren', ep: 'الحلقة 28', img: 'https://cdn.myanimelist.net/images/anime/1015/138006l.jpg', rating: 9.3, type: 'مترجم', genre: 'خيال' },
+    ],
+    dubbed: [
+        { title: 'ناروتو شيبودن', ep: 'الحلقة 500', img: 'https://cdn.myanimelist.net/images/anime/5/17407l.jpg', rating: 8.6, type: 'مدبلج', genre: 'أكشن' },
+        { title: 'Dragon Ball Super', ep: 'الحلقة 131', img: 'https://cdn.myanimelist.net/images/anime/7/74606l.jpg', rating: 8.4, type: 'مدبلج', genre: 'أكشن' },
+        { title: 'Hunter x Hunter', ep: 'الحلقة 148', img: 'https://cdn.myanimelist.net/images/anime/1337/99013l.jpg', rating: 9.1, type: 'مدبلج', genre: 'مغامرة' },
+        { title: 'Death Note', ep: 'الحلقة 37', img: 'https://cdn.myanimelist.net/images/anime/9/9453l.jpg', rating: 9.0, type: 'مدبلج', genre: 'غموض' },
+        { title: 'Sword Art Online', ep: 'الحلقة 25', img: 'https://cdn.myanimelist.net/images/anime/11/39717l.jpg', rating: 7.5, type: 'مدبلج', genre: 'إيسيكاي' },
+        { title: 'Fullmetal Alchemist', ep: 'الحلقة 64', img: 'https://cdn.myanimelist.net/images/anime/1208/94745l.jpg', rating: 9.2, type: 'مدبلج', genre: 'فانتازيا' },
+    ],
+    movies: [
+        { title: 'Your Name', ep: 'فيلم', img: 'https://cdn.myanimelist.net/images/anime/5/87048l.jpg', rating: 9.0, type: 'مترجم', genre: 'رومانسي' },
+        { title: 'Weathering With You', ep: 'فيلم', img: 'https://cdn.myanimelist.net/images/anime/1880/101128l.jpg', rating: 8.5, type: 'مترجم', genre: 'رومانسي' },
+        { title: 'Suzume no Tojimari', ep: 'فيلم', img: 'https://cdn.myanimelist.net/images/anime/1580/127312l.jpg', rating: 8.4, type: 'مترجم', genre: 'خيال' },
+        { title: 'A Silent Voice', ep: 'فيلم', img: 'https://cdn.myanimelist.net/images/anime/1122/96435l.jpg', rating: 9.0, type: 'مترجم', genre: 'دراما' },
+        { title: 'Demon Slayer Movie', ep: 'فيلم', img: 'https://cdn.myanimelist.net/images/anime/1704/106947l.jpg', rating: 8.7, type: 'مترجم', genre: 'أكشن' },
+    ]
+};
 
-        const container = document.getElementById('player-container');
-        container.innerHTML = `
-            <iframe 
-                id="mainPlayer"
-                src="${playerUrl}" 
-                allow="autoplay; fullscreen" 
-                allowfullscreen>
-            </iframe>
-        `;
+const days = ['السبت', 'الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+const scheduleData = days.map((day, i) => ({
+    day,
+    anime: animeData.trending[i % animeData.trending.length].title,
+    time: `${(i + 2) * 3}:00`,
+    isToday: i === new Date().getDay()
+}));
+
+// ===== RENDER FUNCTIONS =====
+function createAnimeCard(data, index) {
+    const badgeColor = data.type === 'مدبلج' ? 'bg-blue-500' : 'badge-shine';
+    return `
+        <div class="card-hover group relative rounded-2xl overflow-hidden bg-dark-700/50 border border-white/5 cursor-pointer" onclick="showPage('watch')">
+            <div class="aspect-[3/4] relative overflow-hidden">
+                <img src="${data.img}" alt="${data.title}" loading="lazy" class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110">
+                <div class="play-overlay absolute inset-0 flex items-center justify-center">
+                    <div class="w-14 h-14 rounded-full bg-primary/90 flex items-center justify-center transform scale-0 group-hover:scale-100 transition-transform duration-300 shadow-2xl">
+                        <svg class="w-6 h-6 text-white mr-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                    </div>
+                </div>
+                <div class="episode-num absolute top-2 right-2 px-3 py-0.5 text-white text-xs font-bold">${data.ep}</div>
+                <div class="absolute top-2 left-2 ${badgeColor} px-2 py-0.5 rounded text-[10px] font-bold text-white">${data.type}</div>
+                <div class="absolute bottom-0 left-0 right-0 h-1/2 bg-gradient-to-t from-dark-900 to-transparent"></div>
+                <div class="absolute bottom-2 right-2 flex items-center gap-1"><svg class="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg><span class="text-xs text-white font-bold">${data.rating}</span></div>
+            </div>
+            <div class="p-3">
+                <h3 class="font-bold text-sm text-white truncate group-hover:text-primary transition-colors">${data.title}</h3>
+                <p class="text-xs text-gray-500 mt-1">${data.genre}</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderGrid(containerId, data) {
+    const container = document.getElementById(containerId);
+    if (container) {
+        container.innerHTML = data.map((item, i) => createAnimeCard(item, i)).join('');
     }
+}
 
-    // الاستماع لرسائل المشغل لضمان عمل الـ API
-    window.addEventListener('message', (e) => {
-        if (e.origin !== "https://animers.embedseek.online") return;
-        
-        if (e.data.playerStatus === 'Ready') {
-            console.log("تم الاتصال بنجاح. الأرباح قيد الاحتساب.");
+function renderSchedule() {
+    const container = document.getElementById('scheduleGrid');
+    if (!container) return;
+    container.innerHTML = scheduleData.map(s => `
+        <div class="${s.isToday ? 'bg-primary/10 border-primary/30' : 'bg-dark-700/30 border-white/5'} rounded-2xl p-4 border text-center transition-all hover:scale-105 cursor-pointer">
+            <p class="text-xs ${s.isToday ? 'text-primary' : 'text-gray-500'} font-semibold mb-2">${s.isToday ? '📍 اليوم' : s.day}</p>
+            <p class="text-sm font-bold text-white truncate">${s.anime}</p>
+            <p class="text-xs text-gray-500 mt-1">${s.time} م</p>
+        </div>
+    `).join('');
+}
+
+function renderAll() {
+    renderGrid('trendingGrid', animeData.trending);
+    renderGrid('newEpisodesGrid', animeData.newEpisodes);
+    renderGrid('dubbedGrid', animeData.dubbed);
+    renderGrid('moviesGrid', animeData.movies);
+    renderSchedule();
+}
+
+// ===== PAGE NAVIGATION =====
+function showPage(page) {
+    document.getElementById('homePage').classList.toggle('hidden', page !== 'home');
+    document.getElementById('watchPage').classList.toggle('hidden', page !== 'watch');
+    document.getElementById('accountPage').classList.toggle('hidden', page !== 'account');
+    document.getElementById('siteFooter').classList.toggle('hidden', page === 'account');
+    
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ===== HERO SLIDER =====
+let currentSlide = 0;
+const totalSlides = 3;
+let slideInterval;
+
+function goToSlide(index) {
+    const slides = document.querySelectorAll('.hero-slide');
+    const dots = document.querySelectorAll('#sliderDots button');
+    
+    slides.forEach(s => s.classList.remove('active'));
+    dots.forEach(d => { d.classList.remove('bg-primary'); d.classList.add('bg-white/30'); });
+    
+    slides[index].classList.add('active');
+    dots[index].classList.add('bg-primary');
+    dots[index].classList.remove('bg-white/30');
+    
+    currentSlide = index;
+}
+
+function nextSlide() {
+    goToSlide((currentSlide + 1) % totalSlides);
+    resetSlideInterval();
+}
+
+function prevSlide() {
+    goToSlide((currentSlide - 1 + totalSlides) % totalSlides);
+    resetSlideInterval();
+}
+
+function resetSlideInterval() {
+    clearInterval(slideInterval);
+    slideInterval = setInterval(nextSlide, 5000);
+}
+
+// ===== SEARCH =====
+function toggleSearch() {
+    const input = document.getElementById('searchInput');
+    input.classList.toggle('active');
+    if (input.classList.contains('active')) {
+        input.focus();
+    }
+}
+
+// ===== MOBILE MENU =====
+function toggleMobileMenu() {
+    const menu = document.getElementById('mobileMenu');
+    const overlay = document.getElementById('menuOverlay');
+    menu.classList.toggle('open');
+    overlay.classList.toggle('hidden');
+    document.body.style.overflow = menu.classList.contains('open') ? 'hidden' : '';
+}
+
+// ===== SERVER SELECTION =====
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('server-btn')) {
+        document.querySelectorAll('.server-btn').forEach(btn => btn.classList.remove('active'));
+        e.target.classList.add('active');
+    }
+});
+
+// ===== SLIDER DOT CLICKS =====
+document.addEventListener('click', function(e) {
+    if (e.target.closest('#sliderDots')) {
+        const dot = e.target.closest('button');
+        if (dot && dot.dataset.slide !== undefined) {
+            goToSlide(parseInt(dot.dataset.slide));
+            resetSlideInterval();
         }
-    });
+    }
+});
 
-    // تشغيل الدالة عند تحميل الصفحة
-    window.onload = loadVideoFromSheet;
+// ===== HEADER SCROLL EFFECT =====
+let lastScroll = 0;
+window.addEventListener('scroll', function() {
+    const header = document.getElementById('header');
+    const currentScroll = window.pageYOffset;
+    
+    if (currentScroll > 100) {
+        header.classList.add('shadow-lg', 'shadow-black/20');
+    } else {
+        header.classList.remove('shadow-lg', 'shadow-black/20');
+    }
+    
+    lastScroll = currentScroll;
+});
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', function() {
+    renderAll();
+    slideInterval = setInterval(nextSlide, 5000);
+});
 </script>
 
 </body>
