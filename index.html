@@ -3,47 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Otaku Zone - المنصة المتكاملة</title>
+    <title>Otaku Zone - الموسوعة الشاملة</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root { --main-red: #ff0000; --bg-black: #050505; --card-bg: #111; }
         body { background-color: var(--bg-black); color: white; font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; }
-        header { text-align: center; padding: 30px; border-bottom: 2px solid var(--main-red); box-shadow: 0 0 20px rgba(255,0,0,0.3); }
+        header { text-align: center; padding: 30px; border-bottom: 2px solid var(--main-red); }
         .container { max-width: 1200px; margin: auto; padding: 20px; }
-        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
-        
-        /* تصميم البطاقة */
-        .anime-card { background: var(--card-bg); border-radius: 15px; border: 1px solid #222; overflow: hidden; transition: 0.3s; cursor: pointer; }
-        .anime-card:hover { transform: translateY(-10px); border-color: var(--main-red); }
-        .anime-card img { width: 100%; height: 380px; object-fit: cover; }
-        .card-content { padding: 15px; text-align: center; }
-        
-        /* نافذة المعلومات المنبثقة (Modal) */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow-y: auto; }
-        .modal-content { background: #151515; margin: 5% auto; padding: 25px; width: 90%; max-width: 800px; border-radius: 20px; border: 1px solid var(--main-red); }
-        .modal-header { display: flex; gap: 20px; flex-wrap: wrap; }
-        .modal-img { width: 250px; border-radius: 10px; }
-        .modal-details { flex: 1; min-width: 300px; }
-        .close { float: left; font-size: 30px; cursor: pointer; color: var(--main-red); }
-        
-        .section-title { color: var(--main-red); border-right: 4px solid var(--main-red); padding-right: 10px; margin: 20px 0 10px; }
-        .actors-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; }
-        .actor-item { font-size: 0.8rem; text-align: center; background: #222; padding: 5px; border-radius: 5px; }
-        .play-now { display: block; background: var(--main-red); color: white; text-align: center; padding: 15px; border-radius: 8px; text-decoration: none; font-weight: bold; margin-top: 20px; }
+        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .anime-card { background: var(--card-bg); border-radius: 12px; overflow: hidden; cursor: pointer; border: 1px solid #222; transition: 0.3s; }
+        .anime-card img { width: 100%; height: 350px; object-fit: cover; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); overflow-y: auto; }
+        .modal-content { background: #121212; margin: 2% auto; padding: 30px; width: 90%; max-width: 1000px; border-radius: 15px; border: 1px solid #333; position: relative; }
+        .close { position: absolute; left: 20px; top: 20px; font-size: 35px; cursor: pointer; color: var(--main-red); }
+        .modal-body { display: flex; gap: 30px; flex-wrap: wrap; }
+        .poster-area { flex: 1; min-width: 280px; }
+        .poster-area img { width: 100%; border-radius: 10px; border: 2px solid var(--main-red); }
+        .details-area { flex: 2; min-width: 300px; }
+        .section-title { font-size: 1.3rem; color: var(--main-red); margin: 25px 0 10px; border-right: 4px solid var(--main-red); padding-right: 10px; }
+        .play-btn { display: block; background: var(--main-red); color: white; text-align: center; padding: 18px; border-radius: 10px; text-decoration: none; font-weight: bold; margin-top: 30px; }
     </style>
 </head>
 <body>
 
 <header><h1>OTAKU ZONE</h1></header>
+<div class="container"><div id="anime-list" class="anime-grid"></div></div>
 
-<div class="container">
-    <div id="anime-list" class="anime-grid"></div>
-</div>
-
-<div id="animeModal" class="modal">
+<div id="infoModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
-        <div id="modal-data"></div>
+        <div id="modal-content-inner"></div>
     </div>
 </div>
 
@@ -53,81 +42,78 @@
     const SB_KEY = "sb_publishable_gwkBiDaTv8jYG4IHFITCLA__zBnhS8r";
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
-    // دالة ترجمة بسيطة (تستخدم Google Translate API غير الرسمي للمتصفح)
-    async function translateText(text) {
+    async function translate(text) {
         try {
-            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURI(text)}`);
-            const data = await res.json();
-            return data[0].map(s => s[0]).join('');
+            const r = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURI(text)}`);
+            const d = await r.json();
+            return d[0].map(s => s[0]).join('');
         } catch { return text; }
     }
 
-    async function loadAnime() {
-        const { data: episodes } = await _supabase.from('episodes').select('*');
+    async function init() {
+        const { data: eps } = await _supabase.from('episodes').select('*');
         const list = document.getElementById('anime-list');
 
-        for (const ep of episodes) {
-            const response = await fetch('https://graphql.anilist.co', {
+        for (const ep of eps) {
+            const resp = await fetch('https://graphql.anilist.co', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     query: `query($id: Int){ Media(id: $id){ 
-                        title { english native } 
+                        title { romaji english native } 
                         coverImage { extraLarge }
                         description
                         averageScore
-                        seasonYear
                         studios(isMain: true) { nodes { name } }
-                        characters(perPage: 6, role: MAIN) { nodes { name { full } } }
+                        characters(perPage: 6, role: MAIN) { edges { node { name { full } } voiceActors(language: JAPANESE) { name { full } } } }
                     }}`,
                     variables: { id: parseInt(ep.anilist_id) }
                 })
             });
-            const { data: { Media: anime } } = await response.json();
+            const { data: { Media: anime } } = await resp.json();
             
-            const card = document.createElement('div');
-            card.className = 'anime-card';
-            card.innerHTML = `
-                <img src="${anime.coverImage.extraLarge}">
-                <div class="card-content">
-                    <h3>${anime.title.english || anime.title.native}</h3>
-                    <small>⭐ ${anime.averageScore/10 || '??'}</small>
-                </div>
-            `;
-            card.onclick = () => showDetails(anime, ep.video_url);
-            list.appendChild(card);
+            // اختيار الاسم الحقيقي (Romaji)
+            const realName = anime.title.romaji || anime.title.english || anime.title.native;
+            
+            const div = document.createElement('div');
+            div.className = 'anime-card';
+            div.innerHTML = `<img src="${anime.coverImage.extraLarge}"><div style="padding:15px; text-align:center; font-weight:bold;">${realName}</div>`;
+            div.onclick = () => showPopUp(anime, realName, ep.video_url);
+            list.appendChild(div);
         }
     }
 
-    async function showDetails(anime, videoUrl) {
-        const modal = document.getElementById('animeModal');
-        const content = document.getElementById('modal-data');
+    async function showPopUp(a, name, url) {
+        const modal = document.getElementById('infoModal');
+        const inner = document.getElementById('modal-content-inner');
         modal.style.display = "block";
-        content.innerHTML = "جاري ترجمة القصة وجلب المعلومات...";
+        inner.innerHTML = "<h2>جاري الترجمة...</h2>";
 
-        const translatedDesc = await translateText(anime.description.replace(/<[^>]*>/g, ''));
-        const actors = anime.characters.nodes.map(n => `<div class="actor-item">${n.name.full}</div>`).join('');
+        const arDesc = await translate(a.description.replace(/<[^>]*>/g, ''));
+        const actors = a.characters.edges.map(e => `<li>${e.node.name.full} (🎙️ ${e.voiceActors[0]?.name.full || 'Unknown'})</li>`).join('');
 
-        content.innerHTML = `
-            <div class="modal-header">
-                <img src="${anime.coverImage.extraLarge}" class="modal-img">
-                <div class="modal-details">
-                    <h2>${anime.title.english || anime.title.native}</h2>
-                    <p><strong>⭐ التقييم:</strong> ${anime.averageScore/10 || '??'}/10</p>
-                    <p><strong>🎬 الاستوديو:</strong> ${anime.studios.nodes[0]?.name || 'N/A'}</p>
-                    <p><strong>📅 سنة الإنتاج:</strong> ${anime.seasonYear || 'N/A'}</p>
-                    <div class="section-title">القصة (مترجمة)</div>
-                    <p style="line-height:1.6; color:#ccc;">${translatedDesc}</p>
+        inner.innerHTML = `
+            <div class="modal-body">
+                <div class="poster-area">
+                    <img src="${a.coverImage.extraLarge}">
+                    <a href="${url}" target="_blank" class="play-btn">▶ مشاهدة الآن</a>
+                </div>
+                <div class="details-area">
+                    <h2 style="color:var(--main-red);">${name}</h2>
+                    <p><strong>الاسم الأصلي:</strong> ${a.title.native}</p>
+                    <p><strong>⭐ التقييم:</strong> ${a.averageScore/10 || '??'}/10</p>
+                    <p><strong>🎬 الاستوديو:</strong> ${a.studios.nodes[0]?.name || 'N/A'}</p>
+                    <div class="section-title">القصة بالعربي</div>
+                    <p style="line-height:1.8; color:#bbb;">${arDesc}</p>
+                    <div class="section-title">الشخصيات والممثلين</div>
+                    <ul style="column-count: 2; font-size: 0.9rem;">${actors}</ul>
                 </div>
             </div>
-            <div class="section-title">أبرز الشخصيات</div>
-            <div class="actors-grid">${actors}</div>
-            <a href="${videoUrl}" target="_blank" class="play-now">▶ ابدأ المشاهدة الآن</a>
         `;
     }
 
-    function closeModal() { document.getElementById('animeModal').style.display = "none"; }
-    loadAnime();
+    function closeModal() { document.getElementById('infoModal').style.display = "none"; }
+    init();
 </script>
 </body>
 </html>
