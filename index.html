@@ -715,11 +715,32 @@
 
         /* SVG Icons inline */
         .icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
+
+        /* New Styles for Studio and Season Buttons */
+        .btn-info-action {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 6px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--text-primary);
+            font-size: 11px;
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .btn-info-action:hover {
+            border-color: var(--accent);
+            background: rgba(230, 57, 70, 0.1);
+        }
+        .studio-link { color: var(--accent); font-weight: 600; text-decoration: none; }
     </style>
 </head>
 <body>
 
-<!-- ===== LOADING SCREEN ===== -->
 <div id="loading-screen">
     <div class="logo-wrap">
         <div class="logo-glow"></div>
@@ -734,7 +755,6 @@
     <p class="loading-text">جاري التحميل...</p>
 </div>
 
-<!-- ===== NAVBAR ===== -->
 <nav id="navbar">
     <div class="nav-inner">
         <div class="nav-logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">
@@ -762,7 +782,6 @@
     </div>
 </nav>
 
-<!-- ===== HERO ===== -->
 <section id="hero">
     <div class="hero-bg">
         <div class="overlay-1"></div>
@@ -824,7 +843,6 @@
     </div>
 </section>
 
-<!-- ===== ANIME GRID ===== -->
 <section id="anime-section">
     <div class="section-inner">
         <div class="section-header">
@@ -845,7 +863,6 @@
     </div>
 </section>
 
-<!-- ===== MODAL ===== -->
 <div id="anime-modal" onclick="if(event.target===this)closeModal()">
     <div class="modal-card">
         <button class="modal-close" onclick="closeModal()">✕</button>
@@ -858,7 +875,6 @@
 
         <div class="modal-body">
             <div class="modal-layout">
-                <!-- Poster Side -->
                 <div class="modal-poster">
                     <div class="modal-poster-img">
                         <img id="modal-poster" src="" alt="">
@@ -872,7 +888,6 @@
                     <div class="sidebar-info" id="sidebar-info"></div>
                 </div>
 
-                <!-- Main Content -->
                 <div class="modal-main">
                     <h1 class="modal-anime-title text-gradient" id="modal-title"></h1>
                     <p class="modal-anime-sub" id="modal-sub"></p>
@@ -894,7 +909,6 @@
     </div>
 </div>
 
-<!-- ===== FOOTER ===== -->
 <footer id="footer">
     <div class="footer-accent-line"></div>
     <div class="footer-inner">
@@ -1092,7 +1106,7 @@ async function openModal(malId) {
         <div class="sidebar-info-row"><span class="info-icon">⏳</span><span class="info-label">الحالة:</span><span class="info-value">...</span></div>
         <div class="sidebar-info-row"><span class="info-icon">📺</span><span class="info-label">النوع:</span><span class="info-value">${a.type || ''}</span></div>
         <div class="sidebar-info-row"><span class="info-icon">📅</span><span class="info-label">الموسم:</span><span class="info-value">${a.season || ''} ${a.year || ''}</span></div>
-        <div class="sidebar-info-row"><span class="info-icon">🎬</span><span class="info-label">الاستوديو:</span><span class="info-value accent">${a.studios?.[0]?.name || 'غير معروف'}</span></div>
+        <div class="sidebar-info-row"><span class="info-icon">🎬</span><span class="info-label">الاستوديو:</span><span class="info-value">...</span></div>
         <div class="sidebar-info-row"><span class="info-icon">⚠️</span><span class="info-label">الفئة:</span><span class="info-value">...</span></div>
     `;
 
@@ -1132,14 +1146,27 @@ async function openModal(malId) {
             translateAr(a.rating)
         ]);
 
-        // Update sidebar
+        const studioName = a.studios?.[0]?.name || 'غير معروف';
+        const studioId = a.studios?.[0]?.mal_id;
+
+        // Update sidebar with Studio and Season Buttons
         document.getElementById('sidebar-info').innerHTML = `
             <div class="sidebar-info-row"><span class="info-icon gold">⭐</span><span class="info-label">تقييم MAL:</span><span class="info-value gold-text gold-gradient">${a.score || 'N/A'}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">⏳</span><span class="info-label">الحالة:</span><span class="info-value">${arStatus}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">📺</span><span class="info-label">النوع:</span><span class="info-value">${a.type || ''}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">📅</span><span class="info-label">الموسم:</span><span class="info-value">${a.season || ''} ${a.year || ''}</span></div>
-            <div class="sidebar-info-row"><span class="info-icon">🎬</span><span class="info-label">الاستوديو:</span><span class="info-value accent">${a.studios?.[0]?.name || 'غير معروف'}</span></div>
+            <div class="sidebar-info-row"><span class="info-icon">🎬</span><span class="info-label">الاستوديو:</span><span class="info-value accent">${studioName}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">⚠️</span><span class="info-label">الفئة:</span><span class="info-value">${arRating}</span></div>
+            
+            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
+                <a href="https://myanimelist.net/anime/season/${a.year}/${a.season}" target="_blank" class="btn-info-action">
+                    📅 رؤية ما انتج في ${a.season} ${a.year}
+                </a>
+                ${studioId ? `
+                <a href="https://myanimelist.net/anime/producer/${studioId}" target="_blank" class="btn-info-action">
+                    🎬 رؤية ما انتج استوديو ${studioName}
+                </a>` : ''}
+            </div>
         `;
 
         // Update story tab
