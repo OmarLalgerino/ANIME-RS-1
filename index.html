@@ -94,13 +94,6 @@
             background-clip: text;
         }
 
-        .gold-gradient {
-            background: linear-gradient(135deg, #ffd700, #ffaa00, #ffd700);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-        }
-
         /* ===== LOADING SCREEN ===== */
         #loading-screen {
             position: fixed; inset: 0; z-index: 9999;
@@ -521,19 +514,36 @@
         .modal-poster-img img { width: 100%; object-fit: cover; display: block; }
         @media (min-width: 768px) { .modal-poster-img img { height: 360px; } }
 
-        /* Season selector */
-        .season-select-wrap { margin-top: 16px; }
+        /* Season selector - UPDATED STYLE */
+        .season-select-wrap { 
+            margin-top: 16px; 
+            padding: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+        }
         .season-select-wrap label {
-            display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 8px;
+            display: block; font-size: 11px; color: var(--text-muted); margin-bottom: 8px;
+            font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .season-select-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .season-select-container::after {
+            content: '▼'; position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+            font-size: 10px; color: var(--accent); pointer-events: none;
         }
         .season-select-wrap select {
-            width: 100%; appearance: none; background: var(--bg-card);
-            border: 1px solid var(--border); border-radius: 12px;
-            padding: 12px 16px; color: var(--text-primary);
-            font-family: inherit; font-size: 14px; cursor: pointer; outline: none;
-            transition: border-color 0.3s;
+            width: 100%; appearance: none; background: var(--bg-secondary);
+            border: 1px solid var(--border); border-radius: 10px;
+            padding: 10px 14px 10px 32px; color: var(--text-primary);
+            font-family: inherit; font-size: 13px; font-weight: 600;
+            cursor: pointer; outline: none; transition: all 0.3s;
         }
-        .season-select-wrap select:focus { border-color: rgba(230,57,70,0.5); }
+        .season-select-wrap select:hover { border-color: var(--accent); }
+        .season-select-wrap select:focus { border-color: var(--accent); box-shadow: 0 0 10px rgba(230,57,70,0.2); }
 
         /* Sidebar info */
         .sidebar-info {
@@ -653,7 +663,6 @@
             height: 16px; background: var(--bg-card); border-radius: 8px;
             margin-bottom: 8px;
         }
-        .skeleton.shimmer-bg { }
 
         /* ===== FOOTER ===== */
         #footer {
@@ -713,21 +722,18 @@
         .footer-love { color: var(--text-muted); font-size: 12px; }
         .footer-love .heart { color: var(--accent); }
 
-        /* SVG Icons inline */
-        .icon { display: inline-block; width: 1em; height: 1em; vertical-align: -0.125em; }
-
-        /* New Styles for Studio and Season Buttons */
         .btn-info-action {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             margin-top: 10px;
-            padding: 6px 12px;
+            padding: 8px 12px;
             background: var(--bg-secondary);
             border: 1px solid var(--border);
-            border-radius: 8px;
+            border-radius: 10px;
             color: var(--text-primary);
             font-size: 11px;
+            font-weight: 600;
             text-decoration: none;
             transition: all 0.3s;
             cursor: pointer;
@@ -735,8 +741,8 @@
         .btn-info-action:hover {
             border-color: var(--accent);
             background: rgba(230, 57, 70, 0.1);
+            transform: translateX(-3px);
         }
-        .studio-link { color: var(--accent); font-weight: 600; text-decoration: none; }
     </style>
 </head>
 <body>
@@ -881,8 +887,10 @@
                     </div>
 
                     <div class="season-select-wrap" id="season-select-wrap" style="display:none;">
-                        <label>اختر الموسم:</label>
-                        <select id="season-select" onchange="updateEpisodes(this.value)"></select>
+                        <label>تغيير الموسم:</label>
+                        <div class="season-select-container">
+                            <select id="season-select" onchange="updateEpisodes(this.value)"></select>
+                        </div>
                     </div>
 
                     <div class="sidebar-info" id="sidebar-info"></div>
@@ -945,7 +953,7 @@ const SB_KEY = "sb_publishable_gwkBiDaTv8jYG4IHFITCLA__zBnhS8r";
 const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
 // ===== STATE =====
-let allAnimeData = {};  // { mal_id: { anime, episodes } }
+let allAnimeData = {};
 let currentModalAnime = null;
 let currentModalEpisodes = [];
 let currentSeasonsMap = {};
@@ -983,7 +991,6 @@ function toggleMobileSearch() {
 // ===== SEARCH / FILTER =====
 function filterAnime(q) {
     searchQuery = q.toLowerCase();
-    // Sync both inputs
     document.getElementById('desktop-search').value = q;
     document.getElementById('mobile-search').value = q;
     renderGrid();
@@ -1000,7 +1007,7 @@ function renderGrid() {
         if (!searchQuery) return true;
         return (
             d.anime.title.toLowerCase().includes(searchQuery) ||
-            (d.anime.title_japanese || '').includes(searchQuery)
+            (d.anime.title_japanese || '').toLowerCase().includes(searchQuery)
         );
     });
 
@@ -1016,9 +1023,7 @@ function renderGrid() {
     filtered.forEach((d, i) => {
         const a = d.anime;
         const epCount = d.episodes.length;
-        const genresHtml = (a.genres || []).slice(0, 2).map(g =>
-            `<span class="genre-tag">${g.name}</span>`
-        ).join('');
+        const genresHtml = (a.genres || []).slice(0, 2).map(g => `<span class="genre-tag">${g.name}</span>`).join('');
 
         html += `
             <div class="anime-card" onclick="openModal(${a.mal_id})" style="animation: fadeInUp 0.5s ease ${i * 0.06}s both;">
@@ -1073,16 +1078,13 @@ async function openModal(malId) {
     modal.classList.add('open');
     document.body.style.overflow = 'hidden';
 
-    // Reset player
     document.getElementById('modal-player').classList.remove('active');
     document.getElementById('player-iframe').src = '';
-
-    // Set poster & titles
     document.getElementById('modal-poster').src = a.images.jpg.large_image_url;
     document.getElementById('modal-title').textContent = a.title;
     document.getElementById('modal-sub').textContent = a.title_japanese || '';
 
-    // Build seasons map
+    // معالجة المواسم
     currentSeasonsMap = {};
     currentModalEpisodes.forEach(e => {
         if (!currentSeasonsMap[e.season_number]) currentSeasonsMap[e.season_number] = [];
@@ -1090,53 +1092,32 @@ async function openModal(malId) {
     });
     currentSeasonKeys = Object.keys(currentSeasonsMap).map(Number).sort((a, b) => a - b);
 
-    // Season selector
     const selectWrap = document.getElementById('season-select-wrap');
     const select = document.getElementById('season-select');
     if (currentSeasonKeys.length > 1) {
-        selectWrap.style.display = '';
+        selectWrap.style.display = 'block';
         select.innerHTML = currentSeasonKeys.map(s => `<option value="${s}">الموسم ${s}</option>`).join('');
     } else {
         selectWrap.style.display = 'none';
     }
 
-    // Sidebar info - show loading
+    // معلومات جانبية أولية
     document.getElementById('sidebar-info').innerHTML = `
-        <div class="sidebar-info-row"><span class="info-icon gold">⭐</span><span class="info-label">تقييم MAL:</span><span class="info-value gold-text gold-gradient">${a.score || 'N/A'}</span></div>
+        <div class="sidebar-info-row"><span class="info-icon gold">⭐</span><span class="info-label">التقييم:</span><span class="info-value gold-text">${a.score || 'N/A'}</span></div>
         <div class="sidebar-info-row"><span class="info-icon">⏳</span><span class="info-label">الحالة:</span><span class="info-value">...</span></div>
         <div class="sidebar-info-row"><span class="info-icon">📺</span><span class="info-label">النوع:</span><span class="info-value">${a.type || ''}</span></div>
-        <div class="sidebar-info-row"><span class="info-icon">📅</span><span class="info-label">الموسم:</span><span class="info-value">${a.season || ''} ${a.year || ''}</span></div>
-        <div class="sidebar-info-row"><span class="info-icon">🎬</span><span class="info-label">الاستوديو:</span><span class="info-value">...</span></div>
-        <div class="sidebar-info-row"><span class="info-icon">⚠️</span><span class="info-label">الفئة:</span><span class="info-value">...</span></div>
     `;
 
-    // Tabs: set story loading, reset others
-    document.getElementById('tab-story').innerHTML = `
-        <h3 class="story-heading">القصة بالعربية</h3>
-        <div class="skeleton shimmer-bg" style="width:100%;height:16px;"></div>
-        <div class="skeleton shimmer-bg" style="width:90%;height:16px;"></div>
-        <div class="skeleton shimmer-bg" style="width:80%;height:16px;"></div>
-        <h3 class="episodes-heading">حلقات المشاهدة:</h3>
-        <div id="episodes-display"></div>
-    `;
-    document.getElementById('tab-chars').innerHTML = '<div class="people-grid">' + Array(6).fill('<div class="skeleton shimmer-bg" style="height:80px;border-radius:12px;"></div>').join('') + '</div>';
-    document.getElementById('tab-staff').innerHTML = '<div class="people-grid">' + Array(4).fill('<div class="skeleton shimmer-bg" style="height:80px;border-radius:12px;"></div>').join('') + '</div>';
-
-    // Trailer tab
-    if (a.trailer?.embed_url) {
-        document.getElementById('tab-trailer').innerHTML = `<div class="trailer-wrap"><iframe src="${a.trailer.embed_url}" allowfullscreen></iframe></div>`;
-    } else {
-        document.getElementById('tab-trailer').innerHTML = `<div class="no-trailer"><p style="font-size:48px;">📹</p><p>الفيديو الترويجي غير متوفر</p></div>`;
-    }
-
-    // Reset tabs
+    // تبويبات افتراضية
+    document.getElementById('tab-story').innerHTML = `<h3 class="story-heading">القصة</h3><p class="story-text">جاري التحميل...</p><div id="episodes-display"></div>`;
+    document.getElementById('tab-chars').innerHTML = '<p>جاري تحميل الشخصيات...</p>';
     document.querySelectorAll('.modal-tab-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
     document.querySelectorAll('.tab-panel').forEach((p, i) => p.classList.toggle('active', i === 0));
 
-    // Render episodes for first season
+    // عرض حلقات الموسم الأول
     updateEpisodes(currentSeasonKeys[0]);
 
-    // Fetch details async
+    // جلب التفاصيل
     try {
         const [charRes, staffRes, arStory, arStatus, arRating] = await Promise.all([
             fetch(`https://api.jikan.moe/v4/anime/${a.mal_id}/characters`).then(r => r.json()),
@@ -1149,67 +1130,47 @@ async function openModal(malId) {
         const studioName = a.studios?.[0]?.name || 'غير معروف';
         const studioId = a.studios?.[0]?.mal_id;
 
-        // Update sidebar with Studio and Season Buttons
         document.getElementById('sidebar-info').innerHTML = `
-            <div class="sidebar-info-row"><span class="info-icon gold">⭐</span><span class="info-label">تقييم MAL:</span><span class="info-value gold-text gold-gradient">${a.score || 'N/A'}</span></div>
+            <div class="sidebar-info-row"><span class="info-icon gold">⭐</span><span class="info-label">التقييم:</span><span class="info-value gold-text">${a.score || 'N/A'}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">⏳</span><span class="info-label">الحالة:</span><span class="info-value">${arStatus}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">📺</span><span class="info-label">النوع:</span><span class="info-value">${a.type || ''}</span></div>
-            <div class="sidebar-info-row"><span class="info-icon">📅</span><span class="info-label">الموسم:</span><span class="info-value">${a.season || ''} ${a.year || ''}</span></div>
             <div class="sidebar-info-row"><span class="info-icon">🎬</span><span class="info-label">الاستوديو:</span><span class="info-value accent">${studioName}</span></div>
-            <div class="sidebar-info-row"><span class="info-icon">⚠️</span><span class="info-label">الفئة:</span><span class="info-value">${arRating}</span></div>
             
-            <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 15px;">
-                <a href="https://myanimelist.net/anime/season/${a.year}/${a.season}" target="_blank" class="btn-info-action">
-                    📅 رؤية ما انتج في ${a.season} ${a.year}
-                </a>
-                ${studioId ? `
-                <a href="https://myanimelist.net/anime/producer/${studioId}" target="_blank" class="btn-info-action">
-                    🎬 رؤية ما انتج استوديو ${studioName}
-                </a>` : ''}
-            </div>
+            <a href="https://myanimelist.net/anime/season/${a.year}/${a.season}" target="_blank" class="btn-info-action">📅 أرشيف ${a.season} ${a.year}</a>
+            ${studioId ? `<a href="https://myanimelist.net/anime/producer/${studioId}" target="_blank" class="btn-info-action">🎬 أعمال الاستوديو</a>` : ''}
         `;
 
-        // Update story tab
         document.getElementById('tab-story').innerHTML = `
             <h3 class="story-heading">القصة بالعربية</h3>
             <p class="story-text">${arStory}</p>
-            <h3 class="episodes-heading">حلقات المشاهدة:</h3>
+            <h3 class="episodes-heading">الحلقات:</h3>
             <div id="episodes-display"></div>
         `;
         updateEpisodes(document.getElementById('season-select').value || currentSeasonKeys[0]);
 
-        // Characters tab
-        const chars = (charRes.data || []).slice(0, 12);
-        document.getElementById('tab-chars').innerHTML = `<div class="people-grid">${chars.map((c, i) => `
-            <div class="person-card" style="animation: slideInRight 0.4s ease ${i * 0.05}s both;">
+        // الشخصيات
+        const chars = (charRes.data || []).slice(0, 10);
+        document.getElementById('tab-chars').innerHTML = `<div class="people-grid">${chars.map(c => `
+            <div class="person-card">
                 <img src="${c.character.images.jpg.image_url}" alt="${c.character.name}">
                 <div>
                     <div class="person-name">${c.character.name}</div>
-                    <div class="person-sub">🎙️ ${c.voice_actors?.[0]?.person?.name || 'مجهول'}</div>
                     <span class="person-role ${c.role === 'Main' ? 'role-main' : 'role-support'}">${c.role === 'Main' ? 'رئيسي' : 'ثانوي'}</span>
                 </div>
             </div>
         `).join('')}</div>`;
 
-        // Staff tab
-        const staffList = (staffRes.data || []).slice(0, 8);
-        document.getElementById('tab-staff').innerHTML = `<div class="people-grid">${staffList.map((s, i) => `
-            <div class="person-card" style="animation: slideInRight 0.4s ease ${i * 0.05}s both;">
-                <img src="${s.person.images.jpg.image_url}" alt="${s.person.name}">
-                <div>
-                    <div class="person-name">${s.person.name}</div>
-                    <div class="person-sub" style="color:var(--accent);">${s.positions?.[0] || ''}</div>
-                </div>
-            </div>
-        `).join('')}</div>`;
+        // الفيديو الترويجي
+        if (a.trailer?.embed_url) {
+            document.getElementById('tab-trailer').innerHTML = `<div class="trailer-wrap"><iframe src="${a.trailer.embed_url}" allowfullscreen></iframe></div>`;
+        } else {
+            document.getElementById('tab-trailer').innerHTML = `<div class="no-trailer">📹 الفيديو الترويجي غير متوفر</div>`;
+        }
 
-    } catch (err) {
-        console.error('Error loading modal details:', err);
-    }
+    } catch (err) { console.error(err); }
 }
 
 function updateEpisodes(seasonNum) {
-    activeEpisodeNum = null;
     const eps = (currentSeasonsMap[seasonNum] || []).sort((a, b) => a.episode_number - b.episode_number);
     const display = document.getElementById('episodes-display');
     if (!display) return;
@@ -1222,29 +1183,19 @@ function updateEpisodes(seasonNum) {
 }
 
 function playEpisode(url, epNum) {
-    // Update active state
     document.querySelectorAll('.episode-btn').forEach(b => b.classList.remove('active'));
-    const btn = document.getElementById(`ep-btn-${epNum}`);
-    if (btn) btn.classList.add('active');
-    activeEpisodeNum = epNum;
-
-    // Show player
+    document.getElementById(`ep-btn-${epNum}`)?.classList.add('active');
     const player = document.getElementById('modal-player');
     const iframe = document.getElementById('player-iframe');
     player.classList.add('active');
     iframe.src = url;
-
-    // Scroll to top of modal
     document.getElementById('anime-modal').scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function closeModal() {
-    const modal = document.getElementById('anime-modal');
-    modal.classList.remove('open');
+    document.getElementById('anime-modal').classList.remove('open');
     document.body.style.overflow = '';
     document.getElementById('player-iframe').src = '';
-    document.getElementById('modal-player').classList.remove('active');
-    currentModalAnime = null;
 }
 
 function switchTab(e, tabId) {
@@ -1254,11 +1205,6 @@ function switchTab(e, tabId) {
     document.getElementById(tabId).classList.add('active');
 }
 
-// Close modal on Escape
-document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') closeModal();
-});
-
 // ===== INIT =====
 async function init() {
     try {
@@ -1266,64 +1212,27 @@ async function init() {
         if (error) throw error;
 
         const groups = {};
-        (episodes || []).forEach(e => {
+        episodes.forEach(e => {
             if (!groups[e.mal_id]) groups[e.mal_id] = [];
             groups[e.mal_id].push(e);
         });
 
-        // Initialize with episodes
-        for (const malId in groups) {
-            allAnimeData[malId] = { anime: null, episodes: groups[malId] };
-        }
-
-        // Fetch anime details with rate limiting
-        const malIds = Object.keys(groups).map(Number);
-        let firstLoaded = false;
-
+        const malIds = Object.keys(groups);
         for (let i = 0; i < malIds.length; i++) {
-            try {
-                const res = await fetch(`https://api.jikan.moe/v4/anime/${malIds[i]}/full`);
-                const { data: anime } = await res.json();
-                allAnimeData[malIds[i]].anime = anime;
-
-                // Update hero with first anime
-                if (!firstLoaded && anime) {
-                    firstLoaded = true;
-                    updateHeroFeatured(anime);
-                    setTimeout(() => {
-                        document.getElementById('loading-screen').classList.add('hidden');
-                    }, 800);
-                }
-
-                // Re-render grid after each anime loads
-                renderGrid();
-
-            } catch (err) {
-                console.error(`Error fetching anime ${malIds[i]}:`, err);
-            }
-
-            // Rate limit: Jikan allows ~3 requests/sec
-            if (i < malIds.length - 1) {
-                await delay(400);
-            }
+            const res = await fetch(`https://api.jikan.moe/v4/anime/${malIds[i]}/full`);
+            const { data: anime } = await res.json();
+            allAnimeData[malIds[i]] = { anime, episodes: groups[malIds[i]] };
+            if (i === 0) updateHeroFeatured(anime);
+            renderGrid();
+            await delay(400); // تجنب الحظر من API
         }
-
-        // Final render
-        renderGrid();
-
-        // Ensure loading screen is hidden
         document.getElementById('loading-screen').classList.add('hidden');
-
     } catch (err) {
-        console.error('Error loading data:', err);
+        console.error(err);
         document.getElementById('loading-screen').classList.add('hidden');
-        document.getElementById('anime-grid-container').innerHTML = `
-            <div class="no-results">حدث خطأ في تحميل البيانات. يرجى تحديث الصفحة.</div>
-        `;
     }
 }
 
-// Start
 init();
 </script>
 
