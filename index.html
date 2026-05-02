@@ -3,49 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Otaku Zone - MAL Verified</title>
+    <title>Otaku Zone - MAL Network</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root { --main-red: #ff0000; --bg-black: #050505; --mal-blue: #2e51a2; --text-gray: #888; }
+        :root { --main-red: #ff0000; --bg-black: #050505; --card-bg: #111; --text-gray: #aaa; --mal-blue: #2e51a2; }
         body { background-color: var(--bg-black); color: white; font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 0; }
         .container { max-width: 1200px; margin: auto; padding: 20px; }
-        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
-        .anime-card { background: #111; border-radius: 12px; overflow: hidden; cursor: pointer; border: 1px solid #222; transition: 0.3s; position: relative; }
-        .anime-card:hover { border-color: var(--main-red); transform: translateY(-5px); }
-        .anime-card img { width: 100%; height: 300px; object-fit: cover; }
-        .score-tag { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.8); color: gold; padding: 5px 10px; border-radius: 5px; font-weight: bold; font-size: 0.8rem; border: 1px solid gold; }
         
-        /* Modal Style */
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow-y: auto; }
-        .modal-content { background: #0d0d0d; margin: 2% auto; padding: 25px; width: 90%; max-width: 1000px; border-radius: 15px; border: 1px solid #333; }
-        .close { float: left; font-size: 30px; cursor: pointer; color: var(--main-red); }
+        /* شبكة الأنمي */
+        .anime-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 15px; }
+        .anime-card { background: var(--card-bg); border-radius: 10px; overflow: hidden; cursor: pointer; border: 1px solid #222; transition: 0.3s; }
+        .anime-card:hover { border-color: var(--main-red); transform: translateY(-3px); }
+        .anime-card img { width: 100%; height: 260px; object-fit: cover; }
         
-        .mal-stats { display: flex; gap: 20px; background: #151515; padding: 15px; border-radius: 10px; margin: 15px 0; border-right: 4px solid var(--mal-blue); }
-        .stat-item { text-align: center; flex: 1; }
-        .stat-value { font-size: 1.5rem; font-weight: bold; display: block; }
-        .stat-label { font-size: 0.7rem; color: var(--text-gray); text-transform: uppercase; }
+        /* النافذة المنبثقة */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); overflow-y: auto; }
+        .modal-content { background: #0d0d0d; margin: 2% auto; padding: 20px; width: 92%; max-width: 1100px; border-radius: 15px; border: 1px solid #333; position: relative; }
+        .close { position: absolute; left: 20px; top: 15px; font-size: 30px; cursor: pointer; color: var(--main-red); }
+
+        /* التبويبات Tabs */
+        .tabs { display: flex; gap: 15px; margin: 20px 0; border-bottom: 1px solid #333; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { background: none; border: none; color: #666; cursor: pointer; padding: 10px 15px; font-weight: bold; transition: 0.3s; white-space: nowrap; }
+        .tab-btn.active { color: var(--main-red); border-bottom: 3px solid var(--main-red); }
+        .tab-content { display: none; animation: fadeIn 0.4s; }
+        .tab-content.active { display: block; }
+
+        /* ستايلات العناصر */
+        .char-card { display: flex; align-items: center; background: #151515; padding: 8px; border-radius: 8px; gap: 10px; margin-bottom: 10px; }
+        .char-card img { width: 50px; height: 70px; border-radius: 5px; object-fit: cover; }
+        .staff-grid, .char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 10px; }
+        .video-container { width: 100%; height: 450px; border-radius: 10px; border: 1px solid #333; }
         
-        .info-line { margin: 8px 0; font-size: 0.9rem; }
-        .info-line strong { color: var(--text-gray); margin-left: 5px; }
-        .studio-btn { background: #222; color: white; border: 1px solid #444; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; }
-        .play-btn { display: block; background: var(--main-red); color: white; text-align: center; padding: 12px; margin-top: 20px; border-radius: 8px; text-decoration: none; font-weight: bold; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1 style="text-align:center; color:var(--main-red); letter-spacing: 2px;">OTAKU ZONE</h1>
+    <h1 style="text-align:center; color:var(--main-red); border-bottom: 1px solid #222; padding-bottom:15px;">OTAKU ZONE</h1>
     <div id="anime-list" class="anime-grid"></div>
 </div>
 
 <div id="fullModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="document.getElementById('fullModal').style.display='none'">&times;</span>
+        <span class="close" onclick="closeModal()">&times;</span>
         <div id="modal-data"></div>
     </div>
 </div>
 
 <script>
+    // بيانات Supabase الخاصة بك بناءً على الصور التي أرسلتها
     const SB_URL = "https://bdzbajkpaqkujbkvrjfu.supabase.co";
     const SB_KEY = "sb_publishable_gwkBiDaTv8jYG4IHFITCLA__zBnhS8r";
     const _supabase = supabase.createClient(SB_URL, SB_KEY);
@@ -54,78 +61,108 @@
         const { data: episodes } = await _supabase.from('episodes').select('*');
         const list = document.getElementById('anime-list');
         
-        // تجميع البيانات بناءً على mal_id الموجود في Supabase
         const groups = {};
-        episodes.forEach(e => {
-            if (!groups[e.mal_id]) groups[e.mal_id] = [];
-            groups[e.mal_id].push(e);
-        });
+        episodes.forEach(e => { if (!groups[e.mal_id]) groups[e.mal_id] = []; groups[e.mal_id].push(e); });
 
         for (const id in groups) {
-            // سحب البيانات من محرك MyAnimeList (Jikan API)
-            const res = await fetch(`https://api.jikan.moe/v4/anime/${id}`);
+            // جلب البيانات الأساسية من MAL
+            const res = await fetch(`https://api.jikan.moe/v4/anime/${id}/full`);
             const { data: anime } = await res.json();
 
             const card = document.createElement('div');
             card.className = 'anime-card';
-            card.innerHTML = `
-                <div class="score-tag">⭐ ${anime.score || 'N/A'}</div>
-                <img src="${anime.images.jpg.large_image_url}">
-                <div style="padding:10px; font-weight:bold; text-align:center;">${anime.title}</div>
-            `;
-            card.onclick = () => showDetails(anime, groups[id]);
+            card.innerHTML = `<img src="${anime.images.jpg.large_image_url}"><div style="padding:10px; font-size:0.85rem; text-align:center;">${anime.title}</div>`;
+            card.onclick = () => showFullNetwork(anime, groups[id]);
             list.appendChild(card);
         }
     }
 
-    async function showDetails(a, eps) {
+    async function showFullNetwork(a, eps) {
         const modal = document.getElementById('fullModal');
         const content = document.getElementById('modal-data');
         modal.style.display = 'block';
+        content.innerHTML = "<h3>جاري بناء الشبكة المعلوماتية...</h3>";
 
-        // ترجمة القصة للعربية لتعزيز تجربة المستخدم العربي
-        const storyAr = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ar&dt=t&q=${encodeURI(a.synopsis)}`)
-            .then(r => r.json()).then(d => d[0].map(s => s[0]).join('')).catch(() => a.synopsis);
+        // جلب الشخصيات والمؤدين من MAL
+        const charRes = await fetch(`https://api.jikan.moe/v4/anime/${a.mal_id}/characters`);
+        const { data: characters } = await charRes.json();
+
+        // جلب طاقم العمل
+        const staffRes = await fetch(`https://api.jikan.moe/v4/anime/${a.mal_id}/staff`);
+        const { data: staff } = await staffRes.json();
 
         content.innerHTML = `
-            <div style="display:grid; grid-template-columns: 300px 1fr; gap:25px;">
-                <div>
+            <div style="display:grid; grid-template-columns: 280px 1fr; gap:20px;">
+                <div class="sidebar">
                     <img src="${a.images.jpg.large_image_url}" style="width:100%; border-radius:10px;">
-                    <a href="${eps[0].video_url}" target="_blank" class="play-btn">▶ ابدأ المشاهدة الآن</a>
+                    <div style="margin-top:15px; background:#111; padding:10px; border-radius:10px; font-size:0.85rem;">
+                        <p><strong>⭐ تقييم MAL:</strong> ${a.score}</p>
+                        <p><strong>🎭 التصنيف:</strong> ${a.genres.map(g => g.name).join(', ')}</p>
+                        <p><strong>🎬 الاستوديو:</strong> <span style="color:var(--main-red);">${a.studios[0]?.name || 'غير معروف'}</span></p>
+                        <p><strong>🔞 الفئة:</strong> ${a.rating}</p>
+                    </div>
                 </div>
-                <div>
-                    <h2 style="margin-top:0;">${a.title}</h2>
-                    <div class="info-line"><strong>الاسم الأصلي:</strong> ${a.title_japanese}</div>
+                
+                <div class="main-info">
+                    <h2 style="margin:0; color:var(--main-red);">${a.title}</h2>
                     
-                    <div class="mal-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">MAL Score</span>
-                            <span class="stat-value" style="color:gold;">⭐ ${a.score}</span>
-                            <span style="font-size:0.6rem; color:#666;">(${a.scored_by?.toLocaleString()} person)</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Rank</span>
-                            <span class="stat-value">#${a.rank}</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">Popularity</span>
-                            <span class="stat-value">${a.popularity}</span>
+                    <div class="tabs">
+                        <button class="tab-btn active" onclick="openTab(event, 'watch')">المشاهدة</button>
+                        <button class="tab-btn" onclick="openTab(event, 'chars')">الشخصيات والمؤدين</button>
+                        <button class="tab-btn" onclick="openTab(event, 'staff')">طاقم العمل</button>
+                        <button class="tab-btn" onclick="openTab(event, 'trailer')">فيديو ترويجي</button>
+                    </div>
+
+                    <div id="watch" class="tab-content active">
+                        <p style="color:var(--text-gray); line-height:1.6;">${a.synopsis || 'لا يوجد وصف حالياً.'}</p>
+                        <div style="margin-top:20px;">
+                            ${eps.map(e => `<a href="${e.video_url}" target="_blank" style="display:inline-block; background:var(--main-red); color:white; padding:10px 20px; margin:5px; border-radius:5px; text-decoration:none; font-weight:bold;">الحلقة ${e.episode_number}</a>`).join('')}
                         </div>
                     </div>
 
-                    <div class="info-line"><strong>حالة الأنمي:</strong> <span style="color:${a.status === 'Currently Airing' ? '#00ff00' : '#aaa'}">${a.status === 'Currently Airing' ? 'مستمر' : 'منتهي'}</span></div>
-                    <div class="info-line"><strong>عدد الحلقات:</strong> ${a.episodes || 'غير محدد'}</div>
-                    <div class="info-line"><strong>الموسم:</strong> ${a.season || ''} ${a.year || ''}</div>
-                    <div class="info-line"><strong>الاستوديو:</strong> <button class="studio-btn">${a.studios[0]?.name || 'Unknown'}</button></div>
-                    <div class="info-line"><strong>الفئة العمرية:</strong> ${a.rating}</div>
+                    <div id="chars" class="tab-content">
+                        <div class="char-grid">${characters.slice(0, 12).map(c => `
+                            <div class="char-card">
+                                <img src="${c.character.images.jpg.image_url}">
+                                <div style="flex:1;">
+                                    <strong>${c.character.name}</strong><br>
+                                    <small style="color:var(--text-gray);">🎙️ ${c.voice_actors[0]?.person.name || 'غير معروف'}</small>
+                                </div>
+                                ${c.voice_actors[0] ? `<img src="${c.voice_actors[0].person.images.jpg.image_url}" style="width:35px; height:35px; border-radius:50%;">` : ''}
+                            </div>
+                        `).join('')}</div>
+                    </div>
 
-                    <h3 style="color:var(--main-red); border-bottom:1px solid #222; padding-bottom:5px;">القصة (موثقة)</h3>
-                    <p style="line-height:1.7; color:#ccc; font-size:0.95rem;">${storyAr}</p>
+                    <div id="staff" class="tab-content">
+                        <div class="staff-grid">${staff.slice(0, 8).map(s => `
+                            <div class="char-card">
+                                <img src="${s.person.images.jpg.image_url}">
+                                <div>
+                                    <strong>${s.person.name}</strong><br>
+                                    <small style="color:var(--main-red);">${s.positions.join(', ')}</small>
+                                </div>
+                            </div>
+                        `).join('')}</div>
+                    </div>
+
+                    <div id="trailer" class="tab-content">
+                        ${a.trailer.embed_url ? `<iframe class="video-container" src="${a.trailer.embed_url}" frameborder="0" allowfullscreen></iframe>` : '<h3>عذراً، الفيديو الترويجي غير متوفر.</h3>'}
+                    </div>
                 </div>
             </div>
         `;
     }
 
+    function openTab(evt, tabName) {
+        let contents = document.getElementsByClassName("tab-content");
+        for (let i = 0; i < contents.length; i++) contents[i].classList.remove("active");
+        let btns = document.getElementsByClassName("tab-btn");
+        for (let i = 0; i < btns.length; i++) btns[i].classList.remove("active");
+        document.getElementById(tabName).classList.add("active");
+        evt.currentTarget.classList.add("active");
+    }
+
+    function closeModal() { document.getElementById('fullModal').style.display = 'none'; }
     init();
 </script>
 </body>
