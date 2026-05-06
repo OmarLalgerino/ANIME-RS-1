@@ -2,129 +2,189 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Otaku Zone - عالم الأنمي العربي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;700&family=Outfit:wght@600;900&display=swap" rel="stylesheet">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%230a0a10'/%3E%3Ctext x='50' y='40' font-family='Arial Black' font-size='28' font-weight='900' fill='%23e63946' text-anchor='middle' dominant-baseline='middle'%3EOZ%3C/text%3E%3Ctext x='50' y='72' font-family='Arial' font-size='12' fill='%23888' text-anchor='middle'%3Eアニメ%3C/text%3E%3C/svg%3E">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;700;900&family=Outfit:wght@400;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <style>
-        /* ستايل إضافي لنظام الحسابات والتعليقات */
+        /* ===== الأساسيات والمتغيرات ===== */
         :root {
-            --bg-primary: #050508;
-            --accent: #e63946;
-            --text-secondary: #8888a0;
-            --border: #1e1e2e;
+            --bg-primary: #050508; --bg-card: #12121a; --accent: #e63946;
+            --text-primary: #f0f0f5; --text-secondary: #8888a0; --border: #1e1e2e;
         }
 
-        /* واجهة التسجيل */
-        .auth-overlay {
-            position: fixed; inset: 0; z-index: 1000;
-            background: rgba(0,0,0,0.9); display: none;
-            align-items: center; justify-content: center; backdrop-filter: blur(10px);
-        }
-        .auth-card {
-            background: #12121a; padding: 30px; border-radius: 20px;
-            border: 1px solid var(--border); width: 90%; max-width: 400px;
-            text-align: center;
-        }
-        .auth-input {
-            width: 100%; padding: 12px; margin: 10px 0;
-            background: #050508; border: 1px solid var(--border);
-            border-radius: 10px; color: white; outline: none;
-        }
-        .auth-btn {
-            width: 100%; padding: 12px; background: var(--accent);
-            color: white; border: none; border-radius: 10px;
-            cursor: pointer; font-weight: bold; margin-top: 10px;
+        [data-theme="light"] {
+            --bg-primary: #f5f5f7; --bg-card: #ffffff; --text-primary: #111118;
+            --text-secondary: #55556a; --border: #dcdce8;
         }
 
-        /* التعليقات */
-        .comments-section { margin-top: 30px; border-top: 1px solid var(--border); padding-top: 20px; }
-        .comment-box {
-            background: #1a1a25; border-radius: 12px; padding: 15px; margin-bottom: 10px;
-            border-right: 4px solid var(--accent);
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: var(--bg-primary); color: var(--text-primary);
+            font-family: 'Noto Kufi Arabic', sans-serif; overflow-x: hidden;
+            transition: background 0.3s; line-height: 1.6;
         }
-        .comment-user { font-weight: bold; color: var(--accent); font-size: 13px; margin-bottom: 5px; }
-        .comment-text { color: #f0f0f5; font-size: 14px; }
+
+        /* ===== الهيدر والناف بار ===== */
+        #navbar {
+            position: fixed; top: 0; width: 100%; z-index: 1000;
+            background: rgba(5,5,8,0.8); backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border); transition: 0.3s;
+        }
+        .nav-inner {
+            max-width: 1200px; margin: 0 auto; padding: 10px 15px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        .logo-box { background: var(--accent); color: white; padding: 5px 10px; border-radius: 8px; font-weight: 900; }
         
-        .comment-form { display: flex; gap: 10px; margin-bottom: 20px; }
-        .comment-form input {
-            flex: 1; padding: 12px; border-radius: 10px;
-            background: #12121a; border: 1px solid var(--border); color: white;
-        }
+        .nav-actions { display: flex; align-items: center; gap: 10px; }
+        .user-btn { font-size: 12px; color: var(--accent); cursor: pointer; border: 1px solid var(--accent); padding: 5px 12px; border-radius: 20px; }
 
-        /* زر اللايك */
-        .like-container { display: flex; align-items: center; gap: 10px; margin: 15px 0; }
-        .like-btn {
-            background: none; border: 2px solid var(--border); color: var(--text-secondary);
-            padding: 8px 15px; border-radius: 50px; cursor: pointer; transition: 0.3s;
+        /* ===== الحساب والتعليقات ===== */
+        .auth-modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 2000;
+            display: none; align-items: center; justify-content: center; padding: 20px;
         }
-        .like-btn.active { background: var(--accent); border-color: var(--accent); color: white; }
+        .auth-card { background: var(--bg-card); padding: 25px; border-radius: 20px; width: 100%; max-width: 400px; text-align: center; border: 1px solid var(--border); }
+        .auth-input { width: 100%; padding: 12px; margin: 10px 0; border-radius: 10px; border: 1px solid var(--border); background: var(--bg-primary); color: white; }
+        
+        .comment-area { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px; }
+        .comment-item { background: var(--bg-primary); padding: 12px; border-radius: 12px; margin-bottom: 10px; border-right: 3px solid var(--accent); }
+        .comment-user { font-size: 11px; color: var(--accent); font-weight: bold; }
+        
+        .like-section { display: flex; align-items: center; gap: 8px; margin: 15px 0; }
+        .btn-like { background: none; border: 1px solid var(--border); color: var(--text-secondary); padding: 6px 15px; border-radius: 20px; cursor: pointer; }
+        .btn-like.active { background: var(--accent); color: white; border-color: var(--accent); }
 
-        /* حالة المستخدم في الهيدر */
-        #user-status { font-size: 12px; color: var(--text-secondary); cursor: pointer; }
+        /* ===== شبكة الأنمي (متجاوبة للهاتف) ===== */
+        .anime-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px; padding: 20px; max-width: 1200px; margin: 70px auto 0;
+        }
+        .card { background: var(--bg-card); border-radius: 15px; overflow: hidden; cursor: pointer; border: 1px solid var(--border); transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); border-color: var(--accent); }
+        .card img { width: 100%; aspect-ratio: 2/3; object-fit: cover; }
+        .card-info { padding: 10px; }
+        .card-title { font-size: 12px; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* ===== المودال (نافذة التفاصيل) ===== */
+        #modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 1500;
+            display: none; overflow-y: auto; padding: 10px;
+        }
+        .modal-content { background: var(--bg-card); border-radius: 20px; max-width: 800px; margin: 20px auto; overflow: hidden; position: relative; }
+        .close-modal { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.5); color: white; border: none; width: 35px; height: 35px; border-radius: 50%; z-index: 10; cursor: pointer; }
+        .player-box { width: 100%; aspect-ratio: 16/9; background: #000; }
+        .player-box iframe { width: 100%; height: 100%; border: none; }
+        .details { padding: 20px; }
+        
+        /* أزرار المواسم والحلقات */
+        .pills { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+        .pill { background: var(--bg-primary); border: 1px solid var(--border); padding: 6px 15px; border-radius: 20px; white-space: nowrap; cursor: pointer; font-size: 12px; }
+        .pill.active { background: var(--accent); color: white; border-color: var(--accent); }
+
+        @media (max-width: 600px) {
+            .anime-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 10px; }
+            .details { padding: 15px; }
+        }
     </style>
-    </head>
+</head>
 <body>
-
-<div id="auth-modal" class="auth-overlay">
-    <div class="auth-card">
-        <h2 style="margin-bottom: 20px;">انضم إلى العائلة 🐺</h2>
-        <input type="email" id="auth-email" class="auth-input" placeholder="البريد الإلكتروني">
-        <input type="password" id="auth-pass" class="auth-input" placeholder="كلمة السر">
-        <button class="auth-btn" onclick="handleAuth('login')">دخول</button>
-        <button class="auth-btn" style="background:none; border:1px solid var(--accent);" onclick="handleAuth('signup')">إنشاء حساب جديد</button>
-        <p style="margin-top: 15px; font-size: 12px; color: var(--text-secondary); cursor: pointer;" onclick="closeAuth()">إغلاق</p>
-    </div>
-</div>
 
 <nav id="navbar">
     <div class="nav-inner">
+        <div class="logo" onclick="location.reload()">
+            <div class="logo-box">OZ</div>
+            <span style="font-weight: 900; font-size: 18px;">OTAKU<span style="color:var(--accent)">ZONE</span></span>
+        </div>
         <div class="nav-actions">
-            <div id="user-info" style="display: flex; align-items: center; gap: 10px;">
-                <span id="user-status" onclick="openAuth()">تسجيل الدخول</span>
-            </div>
-            </div>
+            <div id="theme-btn" style="cursor:pointer; font-size: 20px;">🌙</div>
+            <div id="user-status" class="user-btn" onclick="openAuth()">دخول</div>
+        </div>
     </div>
 </nav>
 
-<div id="anime-modal">
-    <div class="modal-body">
-        <div class="like-container">
-            <button id="like-btn" class="like-btn" onclick="toggleLike()">❤ أعجبني</button>
-            <span id="like-count" style="font-size: 14px;">0 إعجاب</span>
-        </div>
+<div id="auth-modal" class="auth-modal">
+    <div class="auth-card">
+        <h2 style="margin-bottom: 15px;">تسجيل الدخول</h2>
+        <input type="email" id="email" class="auth-input" placeholder="البريد الإلكتروني">
+        <input type="password" id="pass" class="auth-input" placeholder="كلمة السر">
+        <button class="pill active" style="width:100%; margin-top:10px; padding:12px;" onclick="handleAuth('login')">تسجيل الدخول</button>
+        <button class="pill" style="width:100%; margin-top:8px; padding:10px;" onclick="handleAuth('signup')">إنشاء حساب</button>
+        <p style="margin-top: 15px; color: var(--text-secondary); cursor: pointer;" onclick="closeAuth()">إغلاق</p>
+    </div>
+</div>
 
-        <div class="comments-section">
-            <h3 style="margin-bottom: 15px;">التعليقات</h3>
-            <div id="comment-input-area" class="comment-form" style="display: none;">
-                <input type="text" id="comment-text" placeholder="اكتب رأيك في هذا الأنمي...">
-                <button class="btn-primary" style="padding: 5px 15px;" onclick="postComment()">نشر</button>
-            </div>
-            <p id="login-to-comment" style="font-size: 13px; color: var(--text-secondary);">يرجى <span style="color:var(--accent); cursor:pointer;" onclick="openAuth()">تسجيل الدخول</span> لكتابة تعليق.</p>
+<div id="anime-grid" class="anime-grid">
+    </div>
+
+<div id="modal">
+    <div class="modal-content">
+        <button class="close-modal" onclick="closeModal()">✕</button>
+        <div id="player-area" class="player-box" style="display: none;">
+            <iframe id="main-player" src="" allowfullscreen></iframe>
+        </div>
+        <div class="details">
+            <h1 id="m-title" style="font-size: 20px; margin-bottom: 10px;"></h1>
             
-            <div id="comments-list">
+            <div id="season-pills" class="pills" style="margin-bottom: 15px;"></div>
+            
+            <div id="episode-pills" class="pills" style="margin-bottom: 20px;"></div>
+
+            <div class="like-section">
+                <button id="like-btn" class="btn-like" onclick="toggleLike()">❤ أعجبني</button>
+                <span id="like-count" style="font-size: 12px; color: var(--text-secondary);">0 إعجاب</span>
+            </div>
+
+            <div class="comment-area">
+                <h3 style="margin-bottom: 10px; font-size: 16px;">التعليقات</h3>
+                <div id="comment-form" style="display: none; gap: 10px; margin-bottom: 15px;">
+                    <input type="text" id="c-input" class="auth-input" style="margin:0; flex:1;" placeholder="اكتب تعليقك...">
+                    <button class="pill active" onclick="postComment()">نشر</button>
                 </div>
+                <div id="comments-list"></div>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-// إعدادات Supabase (ضع مفاتيحك هنا)
+// الإعدادات - استبدل ببياناتك
 const SB_URL = "https://bdzbajkpaqkujbkvrjfu.supabase.co";
-const SB_KEY = "sb_publishable_gwkBiDaTv8jYG4IHFITCLA__zBnhS8r"; // تأكد من الـ Anon Key
+const SB_KEY = "sb_publishable_gwkBiDaTv8jYG4IHFITCLA__zBnhS8r";
 const _supabase = supabase.createClient(SB_URL, SB_KEY);
 
+let allAnime = {};
 let currentUser = null;
+let activeAnimeId = null;
 
-// 1. إدارة المستخدمين
+// 1. نظام الثيم (Day/Night)
+function initTheme() {
+    const hours = new Date().getHours();
+    const isNight = hours < 6 || hours > 18;
+    const saved = localStorage.getItem('theme');
+    const theme = saved || (isNight ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', theme);
+    document.getElementById('theme-btn').textContent = theme === 'dark' ? '☀️' : '🌙';
+}
+
+document.getElementById('theme-btn').onclick = () => {
+    const current = document.documentElement.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('theme-btn').textContent = next === 'dark' ? '☀️' : '🌙';
+};
+
+// 2. إدارة الحسابات
 async function checkUser() {
     const { data } = await _supabase.auth.getUser();
     if (data?.user) {
         currentUser = data.user;
-        document.getElementById('user-status').textContent = "حسابي (" + currentUser.email.split('@')[0] + ")";
-        document.getElementById('comment-input-area').style.display = 'flex';
-        document.getElementById('login-to-comment').style.display = 'none';
+        document.getElementById('user-status').textContent = currentUser.email.split('@')[0];
+        document.getElementById('comment-form').style.display = 'flex';
     }
 }
 
@@ -132,99 +192,133 @@ function openAuth() { document.getElementById('auth-modal').style.display = 'fle
 function closeAuth() { document.getElementById('auth-modal').style.display = 'none'; }
 
 async function handleAuth(type) {
-    const email = document.getElementById('auth-email').value;
-    const pass = document.getElementById('auth-pass').value;
-    
-    let result;
-    if(type === 'signup') {
-        result = await _supabase.auth.signUp({ email, password: pass });
-    } else {
-        result = await _supabase.auth.signInWithPassword({ email, password: pass });
-    }
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('pass').value;
+    const { data, error } = type === 'signup' 
+        ? await _supabase.auth.signUp({ email, password })
+        : await _supabase.auth.signInWithPassword({ email, password });
 
-    if (result.error) alert(result.error.message);
-    else {
-        alert("نجحت العملية!");
-        location.reload();
+    if (error) alert(error.message);
+    else location.reload();
+}
+
+// 3. تحميل البيانات
+async function init() {
+    const { data: episodes } = await _supabase.from('episodes').select('*');
+    const groups = {};
+    episodes?.forEach(e => {
+        if (!groups[e.mal_id]) groups[e.mal_id] = { episodes: [] };
+        groups[e.mal_id].episodes.push(e);
+    });
+
+    const grid = document.getElementById('anime-grid');
+    grid.innerHTML = '';
+
+    for (const malId in groups) {
+        const res = await fetch(`https://api.jikan.moe/v4/anime/${malId}`);
+        const { data: anime } = await res.json();
+        allAnime[malId] = { ...groups[malId], info: anime };
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <img src="${anime.images.jpg.large_image_url}" loading="lazy">
+            <div class="card-info"><div class="card-title">${anime.title}</div></div>
+        `;
+        card.onclick = () => openModal(malId);
+        grid.appendChild(card);
+        await new Promise(r => setTimeout(r, 400)); // حماية من الـ Rate Limit
     }
 }
 
-// 2. نظام التعليقات (ربط بالمودال)
-async function loadComments(animeId) {
-    const { data, error } = await _supabase
-        .from('comments') // تأكد من إنشاء جدول باسم comments في Supabase
-        .select('*')
-        .eq('anime_id', animeId)
-        .order('created_at', { ascending: false });
-
-    const list = document.getElementById('comments-list');
-    list.innerHTML = data.length ? '' : '<p style="color:gray; font-size:12px;">لا توجد تعليقات بعد، كن أول المعلقين!</p>';
+// 4. إدارة المودال والتشغيل
+function openModal(id) {
+    activeAnimeId = id;
+    const anime = allAnime[id];
+    document.getElementById('modal').style.display = 'block';
+    document.getElementById('m-title').textContent = anime.info.title;
+    document.getElementById('player-area').style.display = 'none';
     
-    data.forEach(c => {
-        list.innerHTML += `
-            <div class="comment-box">
-                <div class="comment-user">${c.user_email}</div>
-                <div class="comment-text">${c.content}</div>
-            </div>`;
-    });
+    // المواسم
+    const seasons = [...new Set(anime.episodes.map(e => e.season_number))].sort();
+    const sBox = document.getElementById('season-pills');
+    sBox.innerHTML = seasons.map(s => `<div class="pill ${s==1?'active':''}" onclick="loadEpisodes(${id}, ${s}, this)">الموسم ${s}</div>`).join('');
+    
+    loadEpisodes(id, seasons[0]);
+    loadComments(id);
+    updateLikeStatus(id);
+}
+
+function loadEpisodes(id, seasonNum, btn) {
+    if(btn) {
+        document.querySelectorAll('#season-pills .pill').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+    }
+    const eps = allAnime[id].episodes.filter(e => e.season_number == seasonNum).sort((a,b) => a.episode_number - b.episode_number);
+    const eBox = document.getElementById('episode-pills');
+    eBox.innerHTML = eps.map(e => `<div class="pill" onclick="playVideo('${e.video_url}', this)">الحلقة ${e.episode_number}</div>`).join('');
+}
+
+function playVideo(url, btn) {
+    document.querySelectorAll('#episode-pills .pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('player-area').style.display = 'block';
+    document.getElementById('main-player').src = url;
+    document.getElementById('modal').scrollTo({top: 0, behavior: 'smooth'});
+}
+
+function closeModal() {
+    document.getElementById('modal').style.display = 'none';
+    document.getElementById('main-player').src = '';
+}
+
+// 5. التفاعل (تعليقات ولايكات)
+async function loadComments(id) {
+    const { data } = await _supabase.from('comments').select('*').eq('anime_id', id).order('created_at', {ascending: false});
+    const box = document.getElementById('comments-list');
+    box.innerHTML = data?.length ? data.map(c => `
+        <div class="comment-item">
+            <div class="comment-user">${c.user_email}</div>
+            <div style="font-size:13px;">${c.content}</div>
+        </div>
+    `).join('') : '<p style="color:gray; font-size:12px;">لا يوجد تعليقات.</p>';
 }
 
 async function postComment() {
-    const text = document.getElementById('comment-text').value;
-    if (!text || !currentModalAnime) return;
-
-    const { error } = await _supabase.from('comments').insert([{
-        anime_id: currentModalAnime.mal_id,
+    const content = document.getElementById('c-input').value;
+    if(!content) return;
+    await _supabase.from('comments').insert({
+        anime_id: activeAnimeId,
         user_id: currentUser.id,
         user_email: currentUser.email.split('@')[0],
-        content: text
-    }]);
-
-    if (error) alert("خطأ في النشر");
-    else {
-        document.getElementById('comment-text').value = '';
-        loadComments(currentModalAnime.mal_id);
-    }
+        content: content
+    });
+    document.getElementById('c-input').value = '';
+    loadComments(activeAnimeId);
 }
 
-// 3. نظام اللايكات
 async function toggleLike() {
-    if (!currentUser) return openAuth();
-    const animeId = currentModalAnime.mal_id;
-    
-    // فحص إذا كان المستخدم وضع لايك مسبقاً
-    const { data } = await _supabase.from('likes').select('*').eq('anime_id', animeId).eq('user_id', currentUser.id);
-
-    if (data.length > 0) {
-        await _supabase.from('likes').delete().eq('anime_id', animeId).eq('user_id', currentUser.id);
-    } else {
-        await _supabase.from('likes').insert([{ anime_id: animeId, user_id: currentUser.id }]);
-    }
-    updateLikeStatus(animeId);
+    if(!currentUser) return openAuth();
+    const { data } = await _supabase.from('likes').select('*').eq('anime_id', activeAnimeId).eq('user_id', currentUser.id);
+    if(data.length) await _supabase.from('likes').delete().eq('anime_id', activeAnimeId).eq('user_id', currentUser.id);
+    else await _supabase.from('likes').insert({ anime_id: activeAnimeId, user_id: currentUser.id });
+    updateLikeStatus(activeAnimeId);
 }
 
-async function updateLikeStatus(animeId) {
-    const { count } = await _supabase.from('likes').select('*', { count: 'exact' }).eq('anime_id', animeId);
+async function updateLikeStatus(id) {
+    const { count } = await _supabase.from('likes').select('*', { count: 'exact' }).eq('anime_id', id);
     document.getElementById('like-count').textContent = `${count || 0} إعجاب`;
-    
-    if (currentUser) {
-        const { data } = await _supabase.from('likes').select('*').eq('anime_id', animeId).eq('user_id', currentUser.id);
+    if(currentUser) {
+        const { data } = await _supabase.from('likes').select('*').eq('anime_id', id).eq('user_id', currentUser.id);
         document.getElementById('like-btn').classList.toggle('active', data.length > 0);
     }
 }
 
-// تعديل دالة فتح المودال الأصلية لتستدعي هذه الوظائف
-const originalOpenModal = openModal;
-openModal = async function(malId) {
-    await originalOpenModal(malId);
-    loadComments(malId);
-    updateLikeStatus(malId);
-};
+// البدء
+initTheme();
+checkUser();
+init();
 
-// تشغيل فحص المستخدم عند التحميل
-window.onload = checkUser;
-
-// [بقية الأكواد الأصلية للتحميل و Jikan API]
 </script>
 </body>
 </html>
